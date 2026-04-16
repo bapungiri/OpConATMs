@@ -1,0 +1,15 @@
+# ---- Microphone Recording
+Microphone_RPi_IP         = 140.247.178.60
+Microphone_channels       = 1
+Microphone_rate           = 44100
+Microphone_FPB            = 1024
+Microphone_input_device   = 2
+Microphone_audioFormat    = wav
+Microphone_GPIO_pin       = 26
+Microphone_rec_interval   = 60
+RPi_Audio_Dir             = /home/pi/Desktop/AudioRecordings
+
+# ---- Recording Schedule [U: User Set, T: Training]
+Record_Schedule = T
+Record_Start    = [(16, 0)]
+Record_Stop     = [(18, 0)]

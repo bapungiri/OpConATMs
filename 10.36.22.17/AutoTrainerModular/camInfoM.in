@@ -1,0 +1,37 @@
+# ---- Camera Settings [Recording_Mode-> B:Buffer, C:Continuous]
+RPi_IP            = 10.36.22.17
+Camera_Type       = Master
+Recording_Mode    = B
+WebCam_Preview    = True
+Camera_Resolution = (640, 360)
+Camera_FPS        = 90
+Camera_Rotation   = 180
+Camera_Bitrate    = 2000000
+Camera_Pin        = 26
+Camera_Format     = h264
+Stream_Port       = 9000
+
+# ---- Recording Schedule [U: User Set, T: Training Schedule]
+Record_Schedule   = T
+Record_Start      = [( 19, 0), (23, 0), (3,  0)]
+Record_Stop       = [( 19, 40), (23,  40), (3, 40)]
+Teensy_Alarm_File = SetInitialAlarms.h
+
+# ---- Transfer Schedule [U: User Set, T: Outside Training, False: Do Not Transfer]
+Transfer_Schedule = T
+Transfer_Start    = [( 11, 35)]
+Transfer_Stop     = [(18, 0)]
+
+# ---- Conversion Setting [Output_Format-> mp4, mkv, Output_Size-> C: Compressed, O: original]
+Convert_Video = False
+Output_Format = mp4
+Output_Size   = C
+
+# ---- Video Files Transfer Information [Only change Storage_Video_Dir]
+Storage_Video_Dir = 
+#RPi_Video_Dir     = /home/pi/ExpData/Video
+Protocol          = rsync
+Transfer_Ext      = *.frames; *.events
+Log_File_Dir      = /home/pi/rsynclog.txt
+Storage_Root      = 
+Storage_Host      = 192.168.1.7

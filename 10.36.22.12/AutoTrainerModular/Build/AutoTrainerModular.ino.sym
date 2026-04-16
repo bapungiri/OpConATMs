@@ -1,0 +1,1132 @@
+
+/tmp/arduino/sketch-E39C2102CF35E3E95FA2EB77E0F1F6F7/AutoTrainerModular.ino.elf:     file format elf32-littlearm
+
+SYMBOL TABLE:
+60000000 l    d  .text.headers	00000000 .text.headers
+60001400 l    d  .text.code	00000000 .text.code
+60001f50 l    d  .text.progmem	00000000 .text.progmem
+00000000 l    d  .text.itcm	00000000 .text.itcm
+00012fd0 l    d  .fini	00000000 .fini
+00012fd4 l    d  .ARM.exidx	00000000 .ARM.exidx
+20000000 l    d  .data	00000000 .data
+20002ac0 l    d  .bss	00000000 .bss
+20200000 l    d  .bss.dma	00000000 .bss.dma
+70000000 l    d  .bss.extram	00000000 .bss.extram
+60017ac8 l    d  .text.csf	00000000 .text.csf
+00000000 l    d  .ARM.attributes	00000000 .ARM.attributes
+00000000 l    d  .comment	00000000 .comment
+00000000 l    d  .debug_info	00000000 .debug_info
+00000000 l    d  .debug_abbrev	00000000 .debug_abbrev
+00000000 l    d  .debug_line	00000000 .debug_line
+00000000 l    d  .debug_frame	00000000 .debug_frame
+00000000 l    d  .debug_str	00000000 .debug_str
+00000000 l    d  .debug_loc	00000000 .debug_loc
+00000000 l    d  .debug_aranges	00000000 .debug_aranges
+00000000 l    d  .debug_ranges	00000000 .debug_ranges
+00000000 l    df *ABS*	00000000 bootdata.c
+00000000 l    df *ABS*	00000000 startup.c
+60001400 l     F .text.code	00000016 memory_copy
+60001418 l     F .text.code	00000010 memory_clear
+00000000 l    df *ABS*	00000000 AudioStream.cpp
+00000000 l    df *ABS*	00000000 analog.c
+20003b8a l     O .bss	00000001 calibrating
+00000000 l    df *ABS*	00000000 tempmon.c
+200038c4 l     O .bss	00000004 s_hotTemp
+200038c8 l     O .bss	00000004 s_hot_ROOM
+200038cc l     O .bss	00000004 s_roomC_hotC
+200038c0 l     O .bss	00000004 s_hotCount
+00000000 l    df *ABS*	00000000 usb.c
+0000fa08 l     F .text.itcm	00000090 schedule_transfer
+0000fa98 l     F .text.itcm	00000036 run_callbacks
+0000fad0 l     F .text.itcm	000000a0 endpoint0_transmit.constprop.1
+20003854 l     O .bss	00000004 endpointN_notify_mask
+20003b97 l     O .bss	00000001 sof_usage
+20003850 l     O .bss	00000004 endpoint0_notify_mask
+20003b9e l     O .bss	00000001 usb_reboot_timer
+20002c60 l     O .bss	00000008 endpoint0_setupdata
+20003860 l     O .bss	00000008 reply_buffer
+20003848 l     O .bss	00000008 endpoint0_buffer
+00000000 l    df *ABS*	00000000 /home/pi/.arduino15/packages/teensy/tools/teensy-compile/5.4.1/arm/bin/../lib/gcc/arm-none-eabi/5.4.1/armv7e-m/fpu/fpv5-d16/crti.o
+00000000 l    df *ABS*	00000000 /home/pi/.arduino15/packages/teensy/tools/teensy-compile/5.4.1/arm/bin/../lib/gcc/arm-none-eabi/5.4.1/armv7e-m/fpu/fpv5-d16/crtn.o
+00000000 l    df *ABS*	00000000 crtstuff.c
+000000dc l     F .text.itcm	00000000 __do_global_dtors_aux
+20002c68 l       .bss	00000000 completed.8605
+00000100 l     F .text.itcm	00000000 frame_dummy
+20002c6c l       .bss	00000000 object.8610
+60001ed8 l     O .text.code	00000000 __frame_dummy_init_array_entry
+00000000 l    df *ABS*	00000000 AutoTrainerModular.ino.cpp
+00000138 l     F .text.itcm	00000024 __tcf_1
+0000015c l     F .text.itcm	0000000c __tcf_0
+0000019c l     F .text.itcm	00000014 IntervalTimer::begin(void (*)(), unsigned int) [clone .part.50]
+000001b0 l     F .text.itcm	00000034 RunStartANDEndStateMachine(stateMachine*) [clone .part.64]
+000001e4 l     F .text.itcm	0000000c SoundON(float, float, float, float, int)::{lambda()#5}::_FUN()
+000001f0 l     F .text.itcm	0000000c SoundON(float, float, float, float, int)::{lambda()#21}::_FUN()
+000001fc l     F .text.itcm	0000000c SoundON(float, float, float, float, int)::{lambda()#37}::_FUN()
+00001788 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#44}::_FUN()
+000013d0 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#12}::_FUN()
+000015ac l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#28}::_FUN()
+000012f4 l     F .text.itcm	0000001c SoundON(float, float, float, float, int)::{lambda()#4}::_FUN()
+00001450 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#16}::_FUN()
+000016ac l     F .text.itcm	0000001c SoundON(float, float, float, float, int)::{lambda()#36}::_FUN()
+00001808 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#48}::_FUN()
+000014d0 l     F .text.itcm	0000001c SoundON(float, float, float, float, int)::{lambda()#20}::_FUN()
+00001350 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#8}::_FUN()
+0000162c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#32}::_FUN()
+00001708 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#40}::_FUN()
+0000152c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#24}::_FUN()
+000012d4 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#3}::_FUN()
+00001430 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#15}::_FUN()
+00001390 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#10}::_FUN()
+00001748 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#42}::_FUN()
+0000158c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#27}::_FUN()
+0000150c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#23}::_FUN()
+0000168c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#35}::_FUN()
+000017e8 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#47}::_FUN()
+000014b0 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#19}::_FUN()
+00001330 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#7}::_FUN()
+000013b0 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#11}::_FUN()
+0000160c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#31}::_FUN()
+000016e8 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#39}::_FUN()
+00001768 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#43}::_FUN()
+0000156c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#26}::_FUN()
+000012b4 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#2}::_FUN()
+00001294 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#1}::_FUN()
+00001410 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#14}::_FUN()
+000013f0 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#13}::_FUN()
+000017a8 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#45}::_FUN()
+0000164c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#33}::_FUN()
+0000166c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#34}::_FUN()
+000017c8 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#46}::_FUN()
+000015ec l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#30}::_FUN()
+00001310 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#6}::_FUN()
+00001490 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#18}::_FUN()
+00001470 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#17}::_FUN()
+000015cc l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#29}::_FUN()
+00001370 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#9}::_FUN()
+000016c8 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#38}::_FUN()
+00001728 l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#41}::_FUN()
+000014ec l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#22}::_FUN()
+0000154c l     F .text.itcm	00000020 SoundON(float, float, float, float, int)::{lambda()#25}::_FUN()
+00004130 l     F .text.itcm	000004c4 _GLOBAL__sub_I__ZN16anCircularBufferC2Ev
+20200000 l     O .bss.dma	00006590 SetSoundConfig()::data
+20000668 l     O .data	00000044 stateMachineName
+00000000 l    df *ABS*	00000000 TimeAlarms.cpp
+00004950 l     F .text.itcm	00000174 AlarmClass::updateNextTrigger() [clone .part.0]
+00004ac4 l     F .text.itcm	0000004a TimeAlarmsClass::enable(unsigned char) [clone .part.1]
+00004b10 l     F .text.itcm	00000090 TimeAlarmsClass::serviceAlarms() [clone .part.3]
+00004ce8 l     F .text.itcm	0000000c _GLOBAL__sub_I__ZN10AlarmClassC2Ev
+00000000 l    df *ABS*	00000000 async_input_spdif3.cpp
+00004d00 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN21AsyncAudioInputSPDIF310microsLastE
+00000000 l    df *ABS*	00000000 input_adc.cpp
+00004d18 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN16AudioInputAnalog3dmaE
+00000000 l    df *ABS*	00000000 input_i2s.cpp
+00004d30 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN13AudioInputI2S10block_leftE
+00000000 l    df *ABS*	00000000 input_i2s2.cpp
+00004d48 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN14AudioInputI2S210block_leftE
+00000000 l    df *ABS*	00000000 input_i2s_hex.cpp
+00004d60 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN16AudioInputI2SHex9block_ch1E
+00000000 l    df *ABS*	00000000 input_i2s_oct.cpp
+00004d78 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN16AudioInputI2SOct9block_ch1E
+00000000 l    df *ABS*	00000000 input_i2s_quad.cpp
+00004d90 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN17AudioInputI2SQuad9block_ch1E
+00000000 l    df *ABS*	00000000 input_pdm.cpp
+00004da8 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN13AudioInputPDM10block_leftE
+00000000 l    df *ABS*	00000000 input_pdm_i2s2.cpp
+00004dc0 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN14AudioInputPDM210block_leftE
+00000000 l    df *ABS*	00000000 input_spdif3.cpp
+00004dd8 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN16AudioInputSPDIF310block_leftE
+00000000 l    df *ABS*	00000000 input_tdm.cpp
+00004df0 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN13AudioInputTDM14block_incomingE
+00000000 l    df *ABS*	00000000 input_tdm2.cpp
+00004e08 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN14AudioInputTDM214block_incomingE
+00000000 l    df *ABS*	00000000 output_i2s.cpp
+00004f38 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN14AudioOutputI2S14block_left_1stE
+00000000 l    df *ABS*	00000000 output_i2s2.cpp
+00004f50 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN15AudioOutputI2S214block_left_1stE
+00000000 l    df *ABS*	00000000 output_i2s_hex.cpp
+00004f68 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN17AudioOutputI2SHex13block_ch1_1stE
+00000000 l    df *ABS*	00000000 output_i2s_oct.cpp
+00004f80 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN17AudioOutputI2SOct13block_ch1_1stE
+00000000 l    df *ABS*	00000000 output_i2s_quad.cpp
+00004f98 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN18AudioOutputI2SQuad13block_ch1_1stE
+00000000 l    df *ABS*	00000000 output_mqs.cpp
+00004fb0 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN14AudioOutputMQS14block_left_1stE
+00000000 l    df *ABS*	00000000 output_pt8211.cpp
+00004fc8 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN17AudioOutputPT821114block_left_1stE
+00000000 l    df *ABS*	00000000 output_pt8211_2.cpp
+00004fe0 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN19AudioOutputPT8211_214block_left_1stE
+00000000 l    df *ABS*	00000000 output_pwm.cpp
+00004ff8 l     F .text.itcm	0000001c __tcf_0
+00005014 l     F .text.itcm	00000030 _GLOBAL__sub_I__ZN14AudioOutputPWM21update_responsibilityE
+00000000 l    df *ABS*	00000000 output_spdif.cpp
+00005044 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN16AudioOutputSPDIF14block_left_1stE
+00000000 l    df *ABS*	00000000 output_spdif2.cpp
+0000505c l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN17AudioOutputSPDIF214block_left_1stE
+00000000 l    df *ABS*	00000000 output_spdif3.cpp
+00005074 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN17AudioOutputSPDIF314block_left_1stE
+00000000 l    df *ABS*	00000000 output_tdm.cpp
+0000508c l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN14AudioOutputTDM11block_inputE
+00000000 l    df *ABS*	00000000 output_tdm2.cpp
+000050a4 l     F .text.itcm	00000018 _GLOBAL__sub_I__ZN15AudioOutputTDM211block_inputE
+00000000 l    df *ABS*	00000000 SD.cpp
+00006e80 l     F .text.itcm	00000080 _GLOBAL__sub_I_SD
+00000000 l    df *ABS*	00000000 EventResponder.cpp
+00000000 l    df *ABS*	00000000 serialEvent1.cpp
+00000000 l    df *ABS*	00000000 usb_desc.c
+60002020 l     O .text.progmem	0000000a qualifier_descriptor
+20002178 l     O .data	00000012 device_descriptor
+00000000 l    df *ABS*	00000000 interrupt.c
+0000ee90 l     F .text.itcm	00000002 dummy_isr
+00000000 l    df *ABS*	00000000 Time.cpp
+0000479c l     F .text.itcm	00000018 refreshCache(long) [clone .part.0]
+200034ec l     O .bss	00000004 cacheTime
+200034b4 l     O .bss	00000007 tm
+200034e8 l     O .bss	00000004 sysTime
+20003b84 l     O .bss	00000001 Status
+20003428 l     O .bss	00000004 prevMillis
+20001c64 l     O .data	00000004 syncInterval
+20000780 l     O .data	0000000c monthDays
+200034b0 l     O .bss	00000004 nextSyncTime
+00000000 l    df *ABS*	00000000 mixer.cpp
+00000000 l    df *ABS*	00000000 output_dacs.cpp
+00000000 l    df *ABS*	00000000 play_sd_raw.cpp
+00000000 l    df *ABS*	00000000 synth_sine.cpp
+00000000 l    df *ABS*	00000000 synth_waveform.cpp
+00005c94 l     F .text.itcm	00000040 BandLimitedWaveform::new_step_check_saw(unsigned long, int) [clone .part.2]
+00000000 l    df *ABS*	00000000 synth_whitenoise.cpp
+00000000 l    df *ABS*	00000000 SPI.cpp
+00006428 l     F .text.itcm	00000058 SPIClass::transfer(void const*, void*, unsigned int) [clone .part.11]
+00000000 l    df *ABS*	00000000 ExFatFile.cpp
+00000000 l    df *ABS*	00000000 ExFatFileWrite.cpp
+00000000 l    df *ABS*	00000000 ExFatFormatter.cpp
+00000000 l    df *ABS*	00000000 ExFatName.cpp
+00000000 l    df *ABS*	00000000 ExFatPartition.cpp
+00008b68 l     F .text.itcm	0000002a ExFatPartition::fatPut(unsigned long, unsigned long) [clone .part.3]
+00000000 l    df *ABS*	00000000 FatFile.cpp
+00008fec l     F .text.itcm	00000036 FatFile::openRoot(FatVolume*) [clone .part.38]
+000090f4 l     F .text.itcm	00000094 FatFile::sync() [clone .part.42]
+00000000 l    df *ABS*	00000000 FatFileLFN.cpp
+00000000 l    df *ABS*	00000000 FatFormatter.cpp
+0000a7f4 l     F .text.itcm	0000002c initFatDirCallback(unsigned long, void*)
+00000000 l    df *ABS*	00000000 FatName.cpp
+00000000 l    df *ABS*	00000000 FatPartition.cpp
+0000af94 l     F .text.itcm	0000010e FatPartition::fatPut(unsigned long, unsigned long) [clone .part.7]
+00000000 l    df *ABS*	00000000 FsFile.cpp
+00000000 l    df *ABS*	00000000 FsNew.cpp
+00000000 l    df *ABS*	00000000 FsVolume.cpp
+00000000 l    df *ABS*	00000000 SdSpiCard.cpp
+0000b864 l     F .text.itcm	00000022 SharedSpiCard::spiStart() [clone .part.8] [clone .constprop.34]
+0000b888 l     F .text.itcm	00000006 SharedSpiCard::syncDevice() [clone .part.19] [clone .constprop.35]
+0000b890 l     F .text.itcm	00000022 SharedSpiCard::spiStop() [clone .part.9] [clone .constprop.37]
+00000000 l    df *ABS*	00000000 SdioTeensy.cpp
+0000c154 l     F .text.itcm	00000030 sdIrs()
+0000c184 l     F .text.itcm	00000018 isBusyCommandComplete()
+0000c19c l     F .text.itcm	00000010 isBusyCommandInhibit()
+0000c1ac l     F .text.itcm	00000014 isBusyDat()
+0000c1c0 l     F .text.itcm	0000000c isBusyDMA()
+0000c1cc l     F .text.itcm	00000014 isBusyFifoRead()
+0000c1e0 l     F .text.itcm	00000014 isBusyFifoWrite()
+0000c1f4 l     F .text.itcm	00000018 isBusyTransferComplete()
+0000c20c l     F .text.itcm	000000d0 setSdclk(unsigned long)
+0000c340 l     F .text.itcm	00000028 waitTimeout(bool (*)())
+0000c368 l     F .text.itcm	0000004c yieldTimeout(bool (*)())
+0000c3c4 l     F .text.itcm	00000044 enableGPIO(bool) [clone .part.0]
+0000c428 l     F .text.itcm	00000068 cardCommand(unsigned long, unsigned long)
+0000c490 l     F .text.itcm	0000002c isBusyCMD13()
+0000c4dc l     F .text.itcm	0000005c readReg16(unsigned long, void*)
+0000c538 l     F .text.itcm	00000020 waitDmaStatus() [clone .part.5]
+0000c558 l     F .text.itcm	000000b8 rdWrSectors(unsigned long, unsigned long, unsigned char*, unsigned int)
+0000c7a4 l     F .text.itcm	00000058 waitTransferComplete() [clone .part.10]
+0000cb40 l     F .text.itcm	0000009c cardCMD6(unsigned long, unsigned char*)
+20003b81 l     O .bss	00000001 m_version2
+200034c0 l     O .bss	00000010 m_cid
+200034f0 l     O .bss	00000004 m_busyFcn
+20003b82 l     O .bss	00000001 m_highCapacity
+200034e0 l     O .bss	00000004 m_ocr
+200034e4 l     O .bss	00000004 m_rca
+20003b83 l     O .bss	00000001 m_transferActive
+200034f4 l     O .bss	00000004 m_irqstat
+20002452 l     O .data	00000001 m_errorCode
+20003b80 l     O .bss	00000001 m_initDone
+200034d0 l     O .bss	00000010 m_csd
+20003b85 l     O .bss	00000001 m_dmaBusy
+20003424 l     O .bss	00000004 m_sdClkKhz
+200034ac l     O .bss	00000004 m_errorLine
+00000000 l    df *ABS*	00000000 SdSpiChipSelect.cpp
+00000000 l    df *ABS*	00000000 SdSpiTeensy3.cpp
+00000000 l    df *ABS*	00000000 FsCache.cpp
+0000d408 l     F .text.itcm	00000046 FsCache::sync() [clone .part.0]
+00000000 l    df *ABS*	00000000 FsName.cpp
+00000000 l    df *ABS*	00000000 FsStructs.cpp
+00000000 l    df *ABS*	00000000 FsUtf.cpp
+00000000 l    df *ABS*	00000000 upcase.cpp
+200004d8 l     O .data	0000012c lookupTable
+200006ac l     O .data	000000d4 mapTable
+00000000 l    df *ABS*	00000000 DMAChannel.cpp
+00000000 l    df *ABS*	00000000 HardwareSerial.cpp
+00000000 l    df *ABS*	00000000 HardwareSerial1.cpp
+2000346c l     O .bss	00000040 tx_buffer1
+20000604 l     O .data	00000064 UART6_Hardware
+2000342c l     O .bss	00000040 rx_buffer1
+00000000 l    df *ABS*	00000000 IntervalTimer.cpp
+0000e390 l     F .text.itcm	00000068 pit_isr()
+20002ac0 l     O .bss	00000010 funct_table
+00000000 l    df *ABS*	00000000 Print.cpp
+00000000 l    df *ABS*	00000000 Stream.cpp
+00000000 l    df *ABS*	00000000 WMath.cpp
+0000e700 l     F .text.itcm	0000007c random(unsigned long) [clone .part.0]
+200034bc l     O .bss	00000004 seed
+00000000 l    df *ABS*	00000000 WString.cpp
+00000000 l    df *ABS*	00000000 clockspeed.c
+00000000 l    df *ABS*	00000000 delay.c
+00000000 l    df *ABS*	00000000 digital.c
+0000ed90 l     F .text.itcm	0000004c digitalWrite.part.0
+0000eddc l     F .text.itcm	0000001c digitalRead.part.1
+00000000 l    df *ABS*	00000000 main.cpp
+00000000 l    df *ABS*	00000000 memcpy-armv7m.S.o
+00000000 l    df *ABS*	00000000 new.cpp
+00000000 l    df *ABS*	00000000 nonstd.c
+00000000 l    df *ABS*	00000000 pwm.c
+200004c0 l     O .data	0000000c CSWTCH.13
+200004cc l     O .data	0000000c CSWTCH.14
+200004cc l     O .data	0000000c CSWTCH.17
+200004c0 l     O .data	0000000c CSWTCH.16
+00000000 l    df *ABS*	00000000 rtc.c
+00000000 l    df *ABS*	00000000 usb_inst.cpp
+00000000 l    df *ABS*	00000000 usb_serial.c
+00010390 l     F .text.itcm	0000006c rx_queue_transfer
+000103fc l     F .text.itcm	000000b4 rx_event
+000104b0 l     F .text.itcm	00000098 usb_serial_flush_callback
+00010548 l     F .text.itcm	00000194 usb_serial_write.part.1
+20003894 l     O .bss	00000010 rx_index
+20003b7e l     O .bss	00000002 tx_packet_size
+20003b9a l     O .bss	00000001 tx_noautoflush
+20003b99 l     O .bss	00000001 tx_head
+20002ae0 l     O .bss	00000100 rx_transfer
+20003b96 l     O .bss	00000001 rx_tail
+200038a4 l     O .bss	00000009 rx_list
+20003b7a l     O .bss	00000002 rx_packet_size
+20206600 l     O .bss.dma	00001000 rx_buffer
+20207600 l     O .bss.dma	00002000 txbuffer
+20003884 l     O .bss	00000010 rx_count
+20003880 l     O .bss	00000004 rx_available
+20003b95 l     O .bss	00000001 rx_head
+20003b98 l     O .bss	00000001 transmit_previous_timeout
+20003b7c l     O .bss	00000002 tx_available
+20002be0 l     O .bss	00000080 tx_transfer
+00000000 l    df *ABS*	00000000 yield.cpp
+20003b88 l     O .bss	00000001 yield::running
+00000000 l    df *ABS*	00000000 sm_pool.c
+00000000 l    df *ABS*	00000000 w_pow.c
+00000000 l    df *ABS*	00000000 e_pow.c
+00000000 l    df *ABS*	00000000 e_sqrt.c
+00000000 l    df *ABS*	00000000 s_fabs.c
+00000000 l    df *ABS*	00000000 s_finite.c
+00000000 l    df *ABS*	00000000 s_matherr.c
+00000000 l    df *ABS*	00000000 s_nan.c
+00000000 l    df *ABS*	00000000 s_rint.c
+20000280 l     O .data	00000010 TWO52
+00000000 l    df *ABS*	00000000 s_scalbn.c
+00000000 l    df *ABS*	00000000 s_copysign.c
+00000000 l    df *ABS*	00000000 atexit_arm.cc
+00000000 l    df *ABS*	00000000 _aeabi_uldivmod.o
+00000000 l    df *ABS*	00000000 libgcc2.c
+00000000 l    df *ABS*	00000000 _dvmd_tls.o
+00000000 l    df *ABS*	00000000 cxa_atexit.c
+00000000 l    df *ABS*	00000000 errno.c
+00000000 l    df *ABS*	00000000 init.c
+00000000 l    df *ABS*	00000000 malloc.c
+00000000 l    df *ABS*	00000000 mallocr.c
+00000000 l    df *ABS*	00000000 memcmp.c
+00000000 l    df *ABS*	00000000 memmove.c
+00000000 l    df *ABS*	00000000 memset.c
+00000000 l    df *ABS*	00000000 mlock.c
+00000000 l    df *ABS*	00000000 realloc.c
+00000000 l    df *ABS*	00000000 mallocr.c
+00000000 l    df *ABS*	00000000 sbrkr.c
+00000000 l    df *ABS*	00000000 strcpy.c
+00000000 l    df *ABS*	00000000 lib_a-strlen.o
+00000000 l    df *ABS*	00000000 strncmp.c
+00000000 l    df *ABS*	00000000 strncpy.c
+00000000 l    df *ABS*	00000000 __atexit.c
+00000000 l    df *ABS*	00000000 mallocr.c
+00000000 l    df *ABS*	00000000 data_waveforms.c
+00000000 l    df *ABS*	00000000 effect_delay_ext.cpp
+00000000 l    df *ABS*	00000000 impure.c
+20001770 l     O .data	00000428 impure_data
+00000000 l    df *ABS*	00000000 data_bandlimit_step.c
+00000000 l    df *ABS*	00000000 s_lib_ver.c
+00000000 l    df *ABS*	00000000 ExFatVolume.cpp
+00000000 l    df *ABS*	00000000 FatVolume.cpp
+00000000 l    df *ABS*	00000000 FsDateTime.cpp
+00000000 l    df *ABS*	00000000 reent.c
+00000000 l    df *ABS*	00000000 
+00000000 l       *UND*	00000000 __fini_array_end
+00000000 l       *UND*	00000000 __bss_start__
+60018800 l       .text.csf	00000000 __text_csf_end
+00000000 l       *UND*	00000000 __bss_end__
+00000000 l       *UND*	00000000 software_init_hook
+00000000 l       *UND*	00000000 __fini_array_start
+00000000 l       *UND*	00000000 hardware_init_hook
+00000000 l       *UND*	00000000 __libc_fini
+00000000 l       *UND*	00000000 __stack
+00012fb8 l     F .text.itcm	00000008 ___ZN11AudioStream17initialize_memoryEP18audio_block_structj_veneer
+00012fc0 l     F .text.itcm	00000008 ___reboot_Teensyduino__veneer
+00012fc8 l     F .text.itcm	00000008 ___init_veneer
+60001e98 l     F .text.code	00000008 __sm_set_pool_veneer
+60001ea0 l     F .text.code	00000008 ____libc_init_array_veneer
+60001ea8 l     F .text.code	00000008 __memset_veneer
+60001eb0 l     F .text.code	00000008 __usb_init_serialnumber_veneer
+60001eb8 l     F .text.code	00000008 __set_arm_clock_veneer
+60001ec0 l     F .text.code	00000008 __pwm_init_veneer
+60001ec8 l     F .text.code	00000008 __delay_veneer
+60001ed0 l     F .text.code	00000008 __main_veneer
+00001f40 g     F .text.itcm	00000030 EndCurrentStateMachine()
+0000538c  w    F .text.itcm	00000068 SDFile::getModifyTime(DateTimeFields&)
+0000d6dc g     F .text.itcm	000000b4 toUpcase(unsigned short)
+00000168  w    F .text.itcm	0000000c AO_HDW::~AO_HDW()
+00006324 g     F .text.itcm	000000e8 AudioSynthNoiseWhite::update()
+00010918 g     F .text.itcm	00000014 usb_serial_available
+20002d80 g     O .bss	0000001c GPIOOutDO
+2000367c g     O .bss	00000008 AsyncAudioInputSPDIF3::dma
+000129e0 g     F .text.itcm	000000ba strcpy
+20003918 g     O .bss	00000024 sound2
+0000af38 g     F .text.itcm	00000030 FatPartition::freeClusterCount_cb_fat16(unsigned long, unsigned char*, void*)
+60001724 g     F .text.code	00000002 startup_default_late_hook
+00011850 g     F .text.itcm	0000000e fabs
+200034fc g     O .bss	00000004 AudioStream::memory_pool
+0000cab8 g     F .text.itcm	00000088 SdioCard::readSectors(unsigned long, unsigned char*, unsigned int)
+00010af8  w    F .text.itcm	000000f0 yield
+0000b7ec  w    F .text.itcm	0000000e DedicatedSpiCard::~DedicatedSpiCard()
+20003b64 g     O .bss	00000004 usb_timer1_callback
+00009d5c g     F .text.itcm	000001f8 FatFile::write(void const*, unsigned int)
+60001f6c g     O .text.progmem	00000018 usb_string_manufacturer_name_default
+6000180c g     F .text.code	000003bc configure_external_ram
+0000b748  w    F .text.itcm	00000004 DedicatedSpiCard::isDedicatedSpi()
+20002454 g     O .data	00000001 analogHDWWriteResolution
+00009ce4 g     F .text.itcm	00000076 FatFile::truncate()
+00006814  w    F .text.itcm	0000003c FsBlockDeviceInterface::writeSectorsCallback(unsigned long, unsigned int, unsigned char const* (*)(unsigned long, void*), void*)
+200023d4 g     O .data	00000048 stateMachineFunc
+0000a134 g     F .text.itcm	0000015c FatFile::makeSFN(FatLfn_t*)
+00002fd8 g     F .text.itcm	000001d4 NosepokeNonSessionMachine()
+0000b368 g     F .text.itcm	00000130 FatPartition::init(FsBlockDeviceInterface*, unsigned char)
+20002d9c g     O .bss	0000001c HouseBlueDO
+60001f50  w    O .text.progmem	00000001 _serialEventUSB2_default
+200034f8 g     O .bss	00000004 FsDateTime::callback
+0000a290 g     F .text.itcm	000000b0 FatFile::makeUniqueSfn(FatLfn_t*)
+20002eb0 g     O .bss	00000004 NosepokeProb40Var
+0000bbf4 g     F .text.itcm	00000054 SharedSpiCard::writeStart(unsigned long)
+0000a8d4 g     F .text.itcm	0000005c FatFormatter::initPbs()
+0000e58c g     F .text.itcm	00000020 Print::println()
+0000c12c g     F .text.itcm	00000024 DedicatedSpiCard::begin(SdSpiConfig)
+000029e8 g     F .text.itcm	0000008c GiveReward(int)
+2000085c g     O .data	00000070 vtable for DedicatedSpiCard
+20003b70 g     O .bss	00000002 AudioStream::memory_used
+00007230 g     F .text.itcm	00000108 ExFatFile::seekSet(unsigned long long)
+000054d8  w    F .text.itcm	00000028 File::flush()
+000051fc  w    F .text.itcm	00000068 SDFile::getCreateTime(DateTimeFields&)
+0000e790 g     F .text.itcm	00000014 random(long, long)
+00004ba0 g     F .text.itcm	00000058 TimeAlarmsClass::TimeAlarmsClass()
+000125c8 g     F .text.itcm	00000002 __malloc_unlock
+00005100  w    F .text.itcm	000000ac SDFile::openNextFile(unsigned char)
+20003684 g     O .bss	00000004 FsVolume::m_cwv
+00009464 g     F .text.itcm	000000cc FatFile::open(FatFile*, char const*, int)
+0000b73c  w    F .text.itcm	00000004 SharedSpiCard::errorData() const
+600016c4 g     F .text.code	00000058 analog_init
+000091f0 g     F .text.itcm	00000020 FatFile::getCreateDateTime(unsigned short*, unsigned short*)
+0000bba8 g     F .text.itcm	0000004c SharedSpiCard::readOCR(unsigned long*)
+20002ea8 g     O .bss	00000008 NosepokeNonSessionVar
+200036d0 g     O .bss	00000050 analogOutHDW
+20001ba0 g     O .data	00000004 F_CPU_ACTUAL
+20000980  w    O .data	0000005c vtable for SDFile
+00012460 g     F .text.itcm	000000c6 memmove
+20000f2c g     O .data	00000204 step_table
+00004c2c g     F .text.itcm	00000038 TimeAlarmsClass::delay(unsigned long)
+0000ddc4 g     F .text.itcm	0000007a HardwareSerial::peek()
+0000d134 g     F .text.itcm	00000068 SdioCard::stopTransmission(bool)
+00012fdc g       .ARM.exidx	00000000 __exidx_end
+00000260 g     F .text.itcm	00000080 SetSoundConfig()
+0000018c  w    F .text.itcm	0000000e QueueArray<reportStruct>::~QueueArray()
+200037a4 g     O .bss	00000004 dailyQuota
+0000b258 g     F .text.itcm	00000052 FatPartition::freeChain(unsigned long)
+0000018c  w    F .text.itcm	0000000e QueueArray<reportStruct>::~QueueArray()
+20003b86 g     O .bss	00000001 EventResponder::runningFromYield
+20002c84 g     O .bss	000000c4 Alarm
+0000d36c g     F .text.itcm	00000016 SdSpiArduinoDriver::receive()
+2000220c g     O .data	00000080 isr_table_gpio2
+0000b628 g     F .text.itcm	000000e8 FsVolume::begin(FsBlockDeviceInterface*, bool, unsigned char)
+20000e50 g     O .data	000000dc pwm_pin_info
+0000f9a8 g     F .text.itcm	00000060 tempmonGetTemp
+0000e514 g     F .text.itcm	0000002c Print::write(unsigned char const*, unsigned int)
+000002e0 g     F .text.itcm	0000009c ClearAnalogTriggers()
+00011e10 g     F .text.itcm	0000000c __errno
+0000545c  w    F .text.itcm	00000026 SDFile::isDirectory()
+00007e14 g     F .text.itcm	0000019a ExFatFile::timestamp(unsigned char, unsigned short, unsigned char, unsigned char, unsigned char, unsigned char, unsigned char)
+00005528  w    F .text.itcm	00000044 File::write(unsigned char const*, unsigned int)
+60001000 g     O .text.headers	00000020 ImageVectorTable
+00004f34 g     F .text.itcm	00000002 AudioOutputAnalogStereo::begin()
+000058d8  w    F .text.itcm	000000ac File::~File()
+200035dc g     O .bss	00000004 EventResponder::firstInterrupt
+0001030c g     F .text.itcm	00000004 usb_transfer_status
+00010c38 g     F .text.itcm	00000090 sm_set_pool
+00008380 g     F .text.itcm	0000001c ExFatFormatter::writeUpcaseUnicode(unsigned short)
+000004b4 g     F .text.itcm	00000034 CreateHDW_AO(AO_HDW&, String, unsigned char)
+0000b498 g     F .text.itcm	00000084 FsBaseFile::FsBaseFile(FsBaseFile const&)
+20001c04 g     O .data	00000060 Serial1
+20002455 g     O .data	00000001 analog_write_res
+00008fb0 g     F .text.itcm	0000003a ExFatPartition::rootLength()
+20003664 g     O .bss	00000008 AudioOutputSPDIF3::dma
+00005484  w    F .text.itcm	00000052 SDFile::setCreateTime(DateTimeFields const&)
+00010380  w    F .text.itcm	00000008 usb_serial_class::write(unsigned char const*, unsigned int)
+20000ab4 g     O .data	00000370 digital_pin_to_info_PGM
+2000379c g     O .bss	00000004 currentTrainingProtocol
+20003c00 g     O .bss	00000004 errno
+0000d384 g     F .text.itcm	00000020 SdSpiArduinoDriver::receive(unsigned char*, unsigned int)
+00008d2c g     F .text.itcm	00000040 ExFatPartition::fatGet(unsigned long, unsigned long*)
+00012fd8 g       .text.itcm	00000000 _etext
+00006480 g     F .text.itcm	000000d4 _spi_dma_rxISR0()
+0000a5e4 g     F .text.itcm	000000e4 FatFile::parsePathName(char const*, FatLfn_t*, char const**)
+20002ac0 g       .bss	00000000 _sbss
+0000a930 g     F .text.itcm	0000005e FatFormatter::writeMbr()
+0000d1c8 g     F .text.itcm	00000006 sdCsInit(unsigned char)
+00006d38 g     F .text.itcm	00000148 SDClass::mediaPresent()
+0000c2e8 g     F .text.itcm	0000000c SdioCard::errorData() const
+000011e0 g     F .text.itcm	000000b4 SoundOFF(int, int, int, int)
+0000c9f8 g     F .text.itcm	000000c0 SdioCard::writeSector(unsigned long, unsigned char const*)
+0000dcf0 g     F .text.itcm	00000026 HardwareSerial::available()
+00008ec4 g     F .text.itcm	000000ec ExFatPartition::init(FsBlockDeviceInterface*, unsigned char)
+00008444 g     F .text.itcm	000005a4 ExFatFormatter::format(FsBlockDeviceInterface*, unsigned char*, Print*)
+0000ee04 g     F .text.itcm	0000000c digitalRead
+6000202c g       *ABS*	00000000 _stextload
+0000d8c0 g     F .text.itcm	00000018 AudioStream::receiveReadOnly(unsigned int)
+00002cf8 g     F .text.itcm	00000020 loop
+0000f194 g     F .text.itcm	000000b0 flexpwmWrite
+200037f8 g     O .bss	00000050 digitalOutHDW
+000101c4 g     F .text.itcm	00000064 usb_config_rx
+0000f7dc  w    F .text.itcm	00000002 serialEvent1()
+00006fc0 g     F .text.itcm	00000090 ExFatFile::parsePathName(char const*, ExName_t*, char const**)
+20003748 g     O .bss	00000014 audioCon3
+200023b4 g     O .data	00000004 nextTrainingProtocol
+0000cf40 g     F .text.itcm	000000bc SdioCard::readData(unsigned char*)
+000037b4 g     F .text.itcm	000001c8 Nosepoke1soundMachine()
+20003770 g     O .bss	00000014 audioCon5
+0000e674 g     F .text.itcm	00000028 Stream::peekNextDigit()
+0000e218 g     F .text.itcm	00000004 HardwareSerial::write(unsigned char)
+000031ac g     F .text.itcm	00000250 LickTestMachine()
+200035d8 g     O .bss	00000004 EventResponder::lastInterrupt
+00003b58 g     F .text.itcm	000001e8 NosepokeProbDependentMachine()
+0000b51c g     F .text.itcm	00000028 FsBaseFile::close()
+20003b94 g     O .bss	00000001 previousStateMachine
+0000678c g     F .text.itcm	00000048 SPIClass::end()
+0000f008 g     F .text.itcm	00000134 memcpy
+00001a80 g     F .text.itcm	00000074 AO_HDW::off(int)
+20000820 g     O .data	0000000c vtable for AudioMixer4
+00005758  w    F .text.itcm	00000070 File::available()
+0000b8b4 g     F .text.itcm	00000060 SharedSpiCard::writeStop()
+0000d5b0 g     F .text.itcm	000000a0 FsUtf::cpToMb(unsigned long, char*, char*)
+00008dd8 g     F .text.itcm	0000007a ExFatPartition::freeChain(unsigned long)
+00009720 g     F .text.itcm	00000028 FatFile::peek()
+20003868 g     O .bss	00000014 reportQueue
+20003b89  w    O .bss	00000001 SDFile::name()::zeroterm
+2000387c g     O .bss	00000004 rewardTime
+20003b58 g     O .bss	00000004 systick_millis_count
+00007d64 g     F .text.itcm	000000ae ExFatFile::rename(ExFatFile*, char const*)
+20003b8c g     O .bss	00000001 currentStateMachine
+00005348  w    F .text.itcm	00000044 SDFile::truncate(unsigned long long)
+00005f90 g     F .text.itcm	00000380 AudioSynthWaveform::update()
+20002d48 g     O .bss	0000001c CamLeftDO
+00011aec g     F .text.itcm	00000000 .hidden __aeabi_uldivmod
+20003b9c g     O .bss	00000001 usb_configuration
+0000685c  w    F .text.itcm	00000006 SdCardInterface::status()
+00010be8 g     F .text.itcm	00000050 sm_align_pool
+60000000 g     O .text.headers	00000200 FlexSPI_NOR_Config
+0000d19c g     F .text.itcm	0000002c SdioCard::syncDevice()
+0000c874 g     F .text.itcm	00000090 SdioCard::writeData(unsigned char const*)
+000056a0  w    F .text.itcm	0000005a StreamFile<FsBaseFile, unsigned long long>::available()
+00009748 g     F .text.itcm	00000042 FatFile::readDirCache(bool)
+0000f3c4 g     F .text.itcm	000000c8 analogWrite
+0000bd0c g     F .text.itcm	00000098 SharedSpiCard::sectorCount()
+20003504 g     O .bss	00000070 AudioStream::memory_pool_available_mask
+60001f6c  w    O .text.progmem	00000018 usb_string_manufacturer_name
+00011e6c g     F .text.itcm	00000010 malloc
+00005c18 g     F .text.itcm	0000007c BandLimitedWaveform::insert_step(int, bool, int)
+00006c2c g     F .text.itcm	0000010a SDClass::format(int, char, Print&)
+2000095c  w    O .data	00000024 vtable for FsFile
+200038bc g     O .bss	00000004 sCh3
+0000640c  w    F .text.itcm	0000001c EventResponder::triggerEvent(int, void*)
+00001d9c g     F .text.itcm	000001a4 AlarmCallBack()
+60001d48 g     F .text.code	000000ec usb_init
+20003b92 g     O .bss	00000001 numDigitalInputHDW
+20003b74 g     O .bss	00000002 AudioStream::memory_pool_first_mask
+20003798 g     O .bss	00000004 currentStage
+00000470 g     F .text.itcm	00000044 CreateHDW_DI(DI_HDW&, String, unsigned char, void (*)(), int)
+20002df0 g     O .bss	0000001c IRLightDO
+0000b738  w    F .text.itcm	00000004 SharedSpiCard::errorCode() const
+00001828 g     F .text.itcm	0000008c DO_HDW::on()
+000057c8  w    F .text.itcm	00000088 SDFile::seek(unsigned long long, int)
+200036bc g     O .bss	00000004 __malloc_top_pad
+20003be0 g     O .bss	00000004 systick_safe_read
+00005f44 g     F .text.itcm	0000004c BandLimitedWaveform::generate_pulse(unsigned long, unsigned long, int)
+00002d3c g     F .text.itcm	000001c4 DailyWaterMachine()
+00002b8c g     F .text.itcm	0000016c HouseKeeping(unsigned long)
+aaaaaabf g       *ABS*	00000000 _flexram_bank_config
+00007fb0 g     F .text.itcm	000000e2 ExFatFile::truncate()
+20001b98 g     O .data	00000000 .hidden __dso_handle
+000033fc g     F .text.itcm	00000224 LickTrainMachine()
+20002d64 g     O .bss	0000001c CamRightDO
+200023b8 g     O .data	00000004 previousTrainingProtocol
+00000208  w    F .text.itcm	00000058 AudioStream::AudioStream(unsigned char, audio_block_struct**)
+000018b4 g     F .text.itcm	0000008c DO_HDW::off()
+0000d30c g     F .text.itcm	00000058 SdSpiArduinoDriver::deactivate()
+20003b5c g     O .bss	00000004 timeStampTeensy
+20000000 g       .data	00000000 _sdata
+0000aab4 g     F .text.itcm	000001d0 FatFormatter::makeFat32()
+60001fd4 g     O .text.progmem	0000004b usb_config_descriptor_480
+00011b1c g     F .text.itcm	000002e2 .hidden __udivmoddi4
+0000e7b4 g     F .text.itcm	0000002a String::reserve(unsigned int)
+0000d364 g     F .text.itcm	00000006 SdSpiArduinoDriver::end()
+00009024 g     F .text.itcm	00000034 FatFile::addCluster()
+000129bc g     F .text.itcm	00000024 _sbrk_r
+0000c408 g     F .text.itcm	00000020 SdioCard::type() const
+6000171c g     F .text.code	00000002 startup_default_early_hook
+60001428 g     F .text.code	0000022c ResetHandler
+000109a0 g     F .text.itcm	00000020 usb_serial_getchar
+000052a8  w    F .text.itcm	0000004c SDFile::name()
+20003bf4 g     O .bss	00000008 usb_cdc_line_coding
+0000edf8 g     F .text.itcm	0000000a digitalWrite
+200035e0 g     O .bss	00000004 EventResponder::lastYield
+00006f98 g     F .text.itcm	00000028 ExFatFile::openRoot(ExFatVolume*)
+00002170 g     F .text.itcm	00000078 DigitalClockDisplay()
+000082fc  w    F .text.itcm	0000001c Print::write(char const*)
+000051c4  w    F .text.itcm	00000038 StreamFile<FsBaseFile, unsigned long long>::read()
+0000b7e0  w    F .text.itcm	00000002 DedicatedSpiCard::~DedicatedSpiCard()
+00008318 g     F .text.itcm	00000028 ExFatFormatter::syncUpcase()
+000052f4  w    F .text.itcm	00000052 SDFile::setModifyTime(DateTimeFields const&)
+00002d18 g     F .text.itcm	00000024 DoNothingMachine()
+000026d8 g     F .text.itcm	00000058 SyncInitialTime()
+00002f00 g     F .text.itcm	000000d8 WeeklyWaterMachine()
+20003be4 g     O .bss	00000010 extmem_smalloc_pool
+200036b4 g     O .bss	00000004 __malloc_max_sbrked_mem
+0000bfa0 g     F .text.itcm	0000005c DedicatedSpiCard::readSectors(unsigned long, unsigned char*, unsigned int)
+00005410  w    F .text.itcm	0000001a SDFile::position()
+0000ee10 g     F .text.itcm	00000080 pinMode
+0000e8dc g     F .text.itcm	00000034 String::getBytes(unsigned char*, unsigned int, unsigned int) const
+60001f51  w    O .text.progmem	00000001 _serialEventUSB1_default
+200035a4 g     O .bss	00000008 AudioInputTDM2::dma
+60017c00 g     O .text.csf	00000c00 hab_csf
+0000556c  w    F .text.itcm	0000002c File::peek()
+0000b2ac g     F .text.itcm	000000bc FatPartition::freeClusterCount()
+20280000 g       .text.csf	00000000 _heap_end
+00006868  w    F .text.itcm	000000c4 SDClass::open(char const*, unsigned char)
+00012fd4 g       .ARM.exidx	00000000 __exidx_start
+70000000 g       .bss.extram	00000000 _extram_end
+00004cf4  w    F .text.itcm	0000000c DMAChannel::~DMAChannel()
+20002453 g     O .data	00000001 __fdlib_version
+200035d4 g     O .bss	00000004 EventResponder::firstYield
+20000ab0 g     O .data	00000004 _global_impure_ptr
+0000d650 g     F .text.itcm	0000008c FsUtf::mbToCp(char const*, char const*, unsigned long*)
+000055c0  w    F .text.itcm	00000034 StreamFile<FsBaseFile, unsigned long long>::write(unsigned char)
+000125dc g     F .text.itcm	000003de _realloc_r
+0000542c  w    F .text.itcm	00000018 SDFile::read(void*, unsigned int)
+00011e1c g     F .text.itcm	00000050 __libc_init_array
+00005264  w    F .text.itcm	00000044 SDFile::rewindDirectory()
+2000375c g     O .bss	00000014 audioCon4
+000077ec g     F .text.itcm	0000000e ExFatFile::open(ExFatVolume*, char const*, int)
+0000c2f4 g     F .text.itcm	0000001c SdioCard::readCID(CID*)
+00005e28 g     F .text.itcm	000000c0 BandLimitedWaveform::new_step_check_pulse(unsigned long, unsigned long, int)
+00007b8c g     F .text.itcm	000000b4 ExFatFile::addDirCluster()
+00005ee8 g     F .text.itcm	0000002e BandLimitedWaveform::generate_sawtooth(unsigned long, int)
+2000218c g     O .data	00000080 isr_table_gpio1
+0000bd04  w    F .text.itcm	00000008 SharedSpiCard::readCID(CID*)
+20003acc g     O .bss	00000028 sound3b
+20002e40 g     O .bss	00000004 LickTrainVar
+00010368  w    F .text.itcm	00000004 usb_serial_class::clear()
+0000f970 g     F .text.itcm	00000030 _sbrk
+60015008 g       *ABS*	00000000 _sdataload
+00005bc8 g     F .text.itcm	00000050 BandLimitedWaveform::lookup(int)
+2000090c g     O .data	0000000c vtable for AudioSynthWaveformSine
+0000ee94 g     F .text.itcm	00000164 attachInterrupt
+20000a00 g     O .data	00000030 vtable for SDClass
+200035cc g     O .bss	00000008 AudioOutputTDM::dma
+20001c6c g     O .data	00000004 __brkval
+20003b9b g     O .bss	00000001 usb_cdc_line_rtsdtr
+00002ae8 g     F .text.itcm	000000a4 BlinkLightsToneWaterMachine()
+60001e88 g     F .text.code	00000000 _init
+20003b68 g     O .bss	00000004 weeklyIntake
+000106dc g     F .text.itcm	00000002 usb_serial_reset
+000090d4 g     F .text.itcm	0000001e FatFile::cacheDirEntry(unsigned char)
+20003b50 g     O .bss	00000004 stateStop
+0000e7a4 g     F .text.itcm	0000000e String::~String()
+000004e8 g     F .text.itcm	000000b4 ReportData(int, int, int)
+60001654 g     F .text.code	00000070 AudioStream::initialize_memory(audio_block_struct*, unsigned int)
+000069a0  w    F .text.itcm	00000062 SDClass::remove(char const*)
+000050d8  w    F .text.itcm	00000028 SDFile::close()
+2000393c g     O .bss	00000190 sound3a
+00004c1c g     F .text.itcm	00000010 TimeAlarmsClass::getTriggeredAlarmId() const
+00005850  w    F .text.itcm	00000040 SDFile::~SDFile()
+20000900 g     O .data	0000000c vtable for AudioSynthNoiseWhite
+000048a0 g     F .text.itcm	00000020 day()
+0000e8cc g     F .text.itcm	00000010 operator+(StringSumHelper const&, String const&)
+60001f88 g     O .text.progmem	0000004b usb_config_descriptor_12
+00000020 g     F .text.itcm	000000bc irq_gpio6789
+0000f48c g     F .text.itcm	00000068 analogWriteFrequency
+0000d2d8 g     F .text.itcm	00000034 SdSpiArduinoDriver::begin(SdSpiConfig)
+20003c40 g       .bss	00000000 _ebss
+0000c970 g     F .text.itcm	00000088 SdioCard::writeSectors(unsigned long, unsigned char const*, unsigned int)
+00011888 g     F .text.itcm	0000011c rint
+0000037c g     F .text.itcm	000000f4 SetInitialVariables()
+00005514  w    F .text.itcm	00000014 StreamFile<FsBaseFile, unsigned long long>::flush()
+0000dcd0 g     F .text.itcm	00000020 HardwareSerial::availableForWrite()
+0000e85c g     F .text.itcm	00000070 String::append(char const*, unsigned int)
+00006f00 g     F .text.itcm	0000003a ExFatFile::dirCache(unsigned char, unsigned char)
+00007c40 g     F .text.itcm	0000004c ExFatFile::mkdir(ExFatFile*, ExName_t*)
+20209600 g       .bss.dma	00000000 _heap_start
+00001af4 g     F .text.itcm	000001d0 SetHardwareConfig()
+20000918 g     O .data	0000000c vtable for AudioOutputAnalogStereo
+20003b93 g     O .bss	00000001 numDigitalOutputHDW
+00006864  w    F .text.itcm	00000002 SDClass::~SDClass()
+00005f18 g     F .text.itcm	0000002a BandLimitedWaveform::generate_square(unsigned long, int)
+0000f334 g     F .text.itcm	00000090 quadtimerFrequency
+0000e7e0 g     F .text.itcm	00000042 String::copy(char const*, unsigned int)
+00004cf4  w    F .text.itcm	0000000c DMAChannel::~DMAChannel()
+20002e74 g     O .bss	00000004 Nosepoke1soundVar
+0000b958 g     F .text.itcm	000000b0 SharedSpiCard::cardCommand(unsigned char, unsigned long)
+200038b0 g     O .bss	00000004 sCh0
+000058d8  w    F .text.itcm	000000ac File::~File()
+000028b4  w    F .text.itcm	00000060 QueueArray<reportStruct>::dequeue()
+00000003 g       *ABS*	00000000 _itcm_block_count
+0000e144 g     F .text.itcm	000000d2 HardwareSerial::write9bit(unsigned long)
+20002084 g     O .data	000000f0 alarms
+20003ba0 g     O .bss	00000020 endpoint0_transfer_data
+000048e0 g     F .text.itcm	00000024 year()
+0000ad54 g     F .text.itcm	0000002a FatFile::getLfnChar(DirLfn_t*, unsigned char)
+0000d450 g     F .text.itcm	00000060 FsCache::prepare(unsigned long, unsigned char)
+0000f140 g     F .text.itcm	00000004 operator delete(void*, unsigned int)
+0000f4f4 g     F .text.itcm	000002b8 pwm_init
+20002e0c g     O .bss	00000030 LickDI
+0000dda8 g     F .text.itcm	0000001a HardwareSerial::flush()
+00002068 g     F .text.itcm	00000064 HouseLightsOffMachine()
+0000e7a4 g     F .text.itcm	0000000e String::~String()
+00002a74 g     F .text.itcm	00000074 HouseLightsOnToneWaterMachine()
+60001bc8 g     F .text.code	00000064 usb_pll_start
+00009970 g     F .text.itcm	0000005c FatFile::rmdir()
+0000b194 g     F .text.itcm	000000a2 FatPartition::allocateCluster(unsigned long, unsigned long*)
+00002730 g     F .text.itcm	00000068 WhichNosepoke(unsigned int)
+20003858 g     O .bss	00000004 entryTime
+0000c150  w    F .text.itcm	00000002 SdioCard::end()
+00006ab8  w    F .text.itcm	0000004c SDClass::exists(char const*)
+20003574 g     O .bss	00000004 AudioStream::unused
+00000000  w      *UND*	00000000 __deregister_frame_info
+20003bc0 g     O .bss	00000020 endpoint0_transfer_ack
+20003bfc g     O .bss	00000004 usb_cdc_line_rtsdtr_millis
+000102c0 g     F .text.itcm	00000028 usb_transmit
+20002ec4 g     O .bss	00000020 ReportPrintStr
+00002798 g     F .text.itcm	00000064 drawProb()
+0000dcb0 g     F .text.itcm	00000020 systick_isr
+00003620 g     F .text.itcm	00000194 NosepokeRewardNonSessionMachine()
+20003500 g     O .bss	00000004 AudioStream::first_update
+20001bf4 g     O .data	00000010 Serial
+0000e384 g     F .text.itcm	0000000c IRQHandler_Serial1
+20003b72 g     O .bss	00000002 AudioStream::memory_used_max
+2000238c g     O .data	00000028 ligS
+0000dadc g     F .text.itcm	00000038 AudioConnection::~AudioConnection()
+00004c64 g     F .text.itcm	00000084 TimeAlarmsClass::create(long, void (*)(), unsigned char, dtAlarmPeriod_t)
+0000e84c g     F .text.itcm	0000000e String::operator=(String const&)
+20000838 g     O .data	00000024 vtable for HardwareSerial
+0000da1c g     F .text.itcm	00000024 AudioConnection::AudioConnection(AudioStream&, AudioStream&)
+00010388  w    F .text.itcm	00000006 usb_serial_class::write(unsigned char)
+0000b5c4 g     F .text.itcm	0000005e FsBaseFile::openNext(FsBaseFile*, int)
+6000171c  w    F .text.code	00000002 startup_early_hook
+20003b2c g     O .bss	00000020 soundOutPut
+00007830 g     F .text.itcm	0000008e ExFatFile::addCluster()
+20000930  w    O .data	0000002c vtable for File
+0000bc48 g     F .text.itcm	00000074 SharedSpiCard::readData(unsigned char*, unsigned int)
+00006b04  w    F .text.itcm	000000ea SDClass::usedSize()
+000108d4 g     F .text.itcm	00000044 usb_serial_peekchar
+20002db8 g     O .bss	0000001c HouseGreenDO
+20003b90 g     O .bss	00000001 numAnalogInputHDW
+0000b238 g     F .text.itcm	00000020 FatPartition::fatPut(unsigned long, unsigned long)
+0000e99c g     F .text.itcm	000002c4 set_arm_clock
+20003b54 g     O .bss	00000004 systick_cycle_count
+2000243c g     O .data	00000016 usb_string_serial_number_default
+00012de4 g     F .text.itcm	000001d0 _free_r
+0000bda4 g     F .text.itcm	000000dc SharedSpiCard::erase(unsigned long, unsigned long)
+0000bffc g     F .text.itcm	00000052 SharedSpiCard::writeData(unsigned char, unsigned char const*)
+0000c7fc g     F .text.itcm	00000078 SdioCard::readStop()
+0000b740  w    F .text.itcm	00000004 SharedSpiCard::type() const
+00004904 g     F .text.itcm	0000003c setTime(long)
+00001a08 g     F .text.itcm	00000074 AO_HDW::on(int)
+00010378  w    F .text.itcm	00000004 usb_serial_class::flush()
+0000839c g     F .text.itcm	000000a8 ExFatFormatter::writeUpcase(unsigned long)
+20002078 g     O .data	00000004 __malloc_sbrk_base
+00010370  w    F .text.itcm	00000004 usb_serial_class::read()
+20003b8f g     O .bss	00000001 numAlarms
+2000364c g     O .bss	00000008 AudioOutputI2SOct::dma
+00005a40 g     F .text.itcm	00000080 AudioSynthWaveformSine::update()
+0000397c g     F .text.itcm	000001dc NosepokeProb70Machine()
+0000a6c8 g     F .text.itcm	0000012c FatFile::remove()
+0000f9a0  w    F .text.itcm	00000004 __cxa_pure_virtual
+00005da0 g     F .text.itcm	00000088 BandLimitedWaveform::new_step_check_square(unsigned long, int)
+00009394 g     F .text.itcm	000000ce FatFile::mkdir(FatFile*, char const*, bool)
+00010290 g     F .text.itcm	0000002e usb_prepare_transfer
+0000b744  w    F .text.itcm	00000004 DedicatedSpiCard::hasDedicatedSpi()
+0000f7e0 g     F .text.itcm	00000190 unused_interrupt_vector
+20003b60 g     O .bss	00000004 usb_timer0_callback
+60001c2c g     F .text.code	0000011c tempmon_init
+0000a00c g     F .text.itcm	00000126 FatFile::createLFN(unsigned short, FatLfn_t*, unsigned char)
+00002690 g     F .text.itcm	00000048 serialEvent()
+200035bc g     O .bss	00000010 AudioOutputPWM::dma
+00012ca4 g     F .text.itcm	000000a4 __register_exitproc
+0000b770 g     F .text.itcm	00000070 DedicatedSpiCard::writeSectorsCallback(unsigned long, unsigned int, unsigned char const* (*)(unsigned long, void*), void*)
+00004ba0 g     F .text.itcm	00000058 TimeAlarmsClass::TimeAlarmsClass()
+000076f0 g     F .text.itcm	000000fc ExFatFile::open(ExFatFile*, char const*, int)
+0000d8d8 g     F .text.itcm	00000042 AudioStream::receiveWritable(unsigned int)
+20003b8b g     O .bss	00000001 currentAlarmId
+00012b9c g     F .text.itcm	000000a0 strncmp
+00009f54 g     F .text.itcm	000000b8 FatFile::cmpName(unsigned short, FatLfn_t*, unsigned char)
+00007c8c g     F .text.itcm	000000d6 ExFatFile::mkdir(ExFatFile*, char const*, bool)
+0000a990 g     F .text.itcm	00000124 FatFormatter::makeFat16()
+0000d9f0 g     F .text.itcm	0000002c AudioConnection::AudioConnection(AudioStream&, unsigned char, AudioStream&, unsigned char)
+00000208  w    F .text.itcm	00000058 AudioStream::AudioStream(unsigned char, audio_block_struct**)
+0001092c g     F .text.itcm	00000074 usb_serial_flush_input
+00008e54 g     F .text.itcm	00000070 ExFatPartition::freeClusterCount()
+00010f48 g     F .text.itcm	00000784 __ieee754_pow
+00010cc8 g     F .text.itcm	00000280 pow
+000109c0 g     F .text.itcm	0000002c usb_serial_putchar
+00000025 g       *ABS*	00000000 _teensy_model_identifier
+0000ba08 g     F .text.itcm	000001a0 SharedSpiCard::begin(SdSpiConfig)
+20003604 g     O .bss	00000008 AudioOutputI2S2::dma
+00012c3c g     F .text.itcm	00000066 strncpy
+2000368c g     O .bss	00000028 __malloc_current_mallinfo
+20003594 g     O .bss	00000008 AudioInputI2S2::dma
+2000078c g     O .data	00000070 SPIClass::spiclass_lpspi4_hardware
+00001f70 g     F .text.itcm	00000030 EndCurrentTrainingProtocol()
+0000c050 g     F .text.itcm	0000005c SharedSpiCard::writeData(unsigned char const*)
+200038d4 g     O .bss	00000024 sound0
+200035e4 g     O .bss	00000020 HardwareSerial::s_serials_with_serial_events
+00006854  w    F .text.itcm	00000004 SdCardInterface::isDedicatedSpi()
+60001e34 g     F .text.code	00000054 _reboot_Teensyduino_
+20003720 g     O .bss	00000014 audioCon1
+0000e3f8 g     F .text.itcm	000000c0 IntervalTimer::beginCycles(void (*)(), unsigned long)
+0000c3b4  w    F .text.itcm	0000000e SdioCard::~SdioCard()
+0000d9f0 g     F .text.itcm	0000002c AudioConnection::AudioConnection(AudioStream&, unsigned char, AudioStream&, unsigned char)
+60001720 g     F .text.code	00000002 startup_default_middle_hook
+000125cc g     F .text.itcm	00000010 realloc
+20003b91 g     O .bss	00000001 numAnalogOutputHDW
+0000b7fc g     F .text.itcm	00000066 DedicatedSpiCard::writeSectors(unsigned long, unsigned char const*, unsigned int)
+0000bcbc g     F .text.itcm	0000003e SharedSpiCard::readRegister(unsigned char, void*)
+0000c904 g     F .text.itcm	0000006c SdioCard::writeStart(unsigned long)
+0000fb70 g     F .text.itcm	00000654 usb_isr
+00011e04 g     F .text.itcm	0000000c __cxa_atexit
+00007050 g     F .text.itcm	000001b2 ExFatFile::read(void*, unsigned int)
+00000168  w    F .text.itcm	0000000c AO_HDW::~AO_HDW()
+0000214c g     F .text.itcm	00000024 PrintClockDigits(int)
+200038b4 g     O .bss	00000004 sCh1
+000067d4  w    F .text.itcm	00000040 FsBlockDeviceInterface::readSectorsCallback(unsigned long, unsigned char*, unsigned int, void (*)(unsigned long, unsigned char*, void*), void*)
+0000bed4 g     F .text.itcm	0000003e SharedSpiCard::readStop()
+000051ac  w    F .text.itcm	00000018 SDFile::peek()
+0000d4b0 g     F .text.itcm	0000000e FsCache::sync()
+20003674 g     O .bss	00000008 AudioOutputPT8211_2::dma
+0000059c g     F .text.itcm	00000c44 SoundON(float, float, float, float, int)
+0000e6f8 g     F .text.itcm	00000006 Stream::parseInt()
+20002e44 g     O .bss	00000030 Nosepoke1DI
+00006310 g     F .text.itcm	00000014 BandLimitedWaveform::BandLimitedWaveform()
+20001ba4 g     O .data	00000050 SPI
+0000e788 g     F .text.itcm	00000008 random(unsigned long)
+2000228c g     O .data	00000080 isr_table_gpio3
+000123fc g     F .text.itcm	00000062 memcmp
+200008cc  w    O .data	00000028 vtable for usb_serial_class
+0000d3a4 g     F .text.itcm	00000012 SdSpiArduinoDriver::send(unsigned char)
+0000e824 g     F .text.itcm	00000026 String::String(char const*)
+0000d1d0 g     F .text.itcm	00000004 sdCsWrite(unsigned char, bool)
+0000e644 g     F .text.itcm	00000030 Stream::timedPeek()
+200038d0 g     O .bss	00000004 scale_cpu_cycles_to_microseconds
+20002eb8 g     O .bss	00000004 NosepokeProbDependentVar
+00011e00  w    F .text.itcm	00000002 .hidden __aeabi_ldiv0
+00007980 g     F .text.itcm	0000005a ExFatFile::rmdir()
+20000924 g     O .data	0000000c vtable for AudioSynthWaveformSineModulated
+2000361c g     O .bss	00000008 AudioInputI2SHex::dma
+20002e3c g     O .bss	00000004 LickTestVar
+60001f53 g     O .text.progmem	00000001 _serialEvent1_default
+0000be80 g     F .text.itcm	00000054 SharedSpiCard::readStart(unsigned long)
+20001c70 g     O .data	00000408 __malloc_av_
+00003f3c g     F .text.itcm	000001f4 NosepokeProb40Machine()
+00005500  w    F .text.itcm	00000014 SDFile::flush()
+00010a54 g     F .text.itcm	000000a4 usb_serial_flush_output
+00005d0c g     F .text.itcm	00000064 BandLimitedWaveform::process_active_steps(unsigned long)
+2000357c g     O .bss	00000008 AudioInputI2S::dma
+000125c4 g     F .text.itcm	00000002 __malloc_lock
+00008a34 g     F .text.itcm	000000cc ExFatFile::getName8(char*, unsigned int)
+20002800 g     O .data	000002c0 _VectorsRam
+0000d3b8 g     F .text.itcm	0000004e SdSpiArduinoDriver::send(unsigned char const*, unsigned int)
+0000a820 g     F .text.itcm	000000b4 FatFormatter::initFatDir(unsigned char, unsigned long)
+000020cc g     F .text.itcm	00000080 ReadSessionParamsMachine()
+00004bf8 g     F .text.itcm	00000022 TimeAlarmsClass::count() const
+00001cc4 g     F .text.itcm	0000006c Interrupt_Nosepoke1DI()
+00006554 g     F .text.itcm	00000230 SPIClass::begin()
+2000385c g     O .bss	00000004 getTimePtr
+0000a340 g     F .text.itcm	000002a4 FatFile::open(FatFile*, FatLfn_t*, int)
+20002458 g     O .data	00000001 yield_active_check_flags
+00007b2c g     F .text.itcm	0000005e ExFatFile::sync()
+200002bc g     O .data	00000202 AudioWaveformSine
+20003b9d g     O .bss	00000001 usb_high_speed
+0000978c g     F .text.itcm	000001e4 FatFile::rename(FatFile*, char const*)
+0000c67c g     F .text.itcm	00000054 SdioCard::isBusy()
+2000363c g     O .bss	00000008 AudioInputI2SQuad::dma
+00012528 g     F .text.itcm	0000009a memset
+0000eff8 g     F .text.itcm	00000010 main
+200035ac g     O .bss	00000008 AudioOutputI2S::dma
+00002004 g     F .text.itcm	00000064 HouseLightsOnMachine()
+200036b8 g     O .bss	00000004 __malloc_max_total_mem
+00008b94 g     F .text.itcm	000000b2 ExFatPartition::bitmapFind(unsigned long, unsigned long)
+202065a0 g     O .bss.dma	0000004b usb_descriptor_buffer
+0000c0ac g     F .text.itcm	00000064 SharedSpiCard::writeSector(unsigned long, unsigned char const*)
+200023bc g     O .data	00000018 soundTimer
+000047b4 g     F .text.itcm	0000008c now()
+00008094 g     F .text.itcm	00000268 ExFatFile::write(void const*, unsigned int)
+0000d514 g     F .text.itcm	0000009c lbaToMbrChs(unsigned char*, unsigned long, unsigned long)
+000091a8 g     F .text.itcm	00000046 FatFile::dirEntry(DirFat_t*)
+000056fc  w    F .text.itcm	0000005a SDFile::available()
+00011870 g     F .text.itcm	00000004 matherr
+00010310 g     F .text.itcm	00000058 usb_init_serialnumber
+20003af4 g     O .bss	00000038 soundMixer
+60001f50 g       .text.code	00000000 __init_array_end
+00011e8c g     F .text.itcm	00000570 _malloc_r
+0000b74c g     F .text.itcm	00000010 DedicatedSpiCard::readSector(unsigned long, unsigned char*)
+20003784 g     O .bss	00000014 audioCon6
+20003b87 g     O .bss	00000001 HardwareSerial::s_count_serials_with_serial_events
+000050c4  w    F .text.itcm	00000012 SDFile::isOpen()
+0000b498 g     F .text.itcm	00000084 FsBaseFile::FsBaseFile(FsBaseFile const&)
+20003688 g     O .bss	00000004 FatVolume::m_cwv
+20003624 g     O .bss	00000008 AudioInputI2SOct::dma
+20000aa0  w    O .data	00000010 SPIClass::beginTransaction(SPISettings)::clk_sel
+0000dbe8 g     F .text.itcm	00000080 EventResponder::triggerEventNotImmediate()
+00006784 g     F .text.itcm	00000008 SPIClass::transfer(void const*, void*, unsigned int)
+0000ed2c g     F .text.itcm	00000064 micros
+20002174 g     O .data	00000004 currentSoundTimer
+200037a8 g     O .bss	00000050 digitalInHDW
+00004e20 g     F .text.itcm	000000f0 AudioMixer4::update()
+200033d8 g     O .bss	00000018 SpeakerDacAO
+00000174  w    F .text.itcm	0000000c DO_HDW::~DO_HDW()
+200038f8 g     O .bss	00000020 sound1
+000079dc g     F .text.itcm	00000150 ExFatFile::syncDir()
+00012d48 g     F .text.itcm	0000009c _malloc_trim_r
+60001f84 g     O .text.progmem	00000004 string0
+000109ec g     F .text.itcm	00000018 usb_serial_write
+00011860 g     F .text.itcm	00000010 finite
+60001724  w    F .text.code	00000002 startup_late_hook
+20002dd4 g     O .bss	0000001c HouseRedDO
+0000f244 g     F .text.itcm	000000f0 flexpwmFrequency
+0000c110 g     F .text.itcm	0000001c DedicatedSpiCard::writeSector(unsigned long, unsigned char const*)
+00010374  w    F .text.itcm	00000004 usb_serial_class::available()
+60001f52  w    O .text.progmem	00000001 _serialEvent_default
+20002456 g     O .data	00000001 endStateMachine
+00009c00 g     F .text.itcm	0000000c FatFile::sync()
+00000174  w    F .text.itcm	0000000c DO_HDW::~DO_HDW()
+0000ac84 g     F .text.itcm	000000d0 FatFormatter::format(FsBlockDeviceInterface*, unsigned char*, Print*)
+00006a68  w    F .text.itcm	00000050 SDClass::mkdir(char const*)
+20000000 g     O .data	00000280 endpoint_queue_head
+60001f54  w    O .text.progmem	00000016 usb_string_product_name
+2000241c g     O .data	00000008 toDoTimer
+00011ac4 g     F .text.itcm	0000001a copysign
+0000ec60 g     F .text.itcm	000000cc delay
+20002ec0 g     O .bss	00000004 NosepokeRewardNonSessionVar
+00001d30 g     F .text.itcm	0000006c Interrupt_Nosepoke2DI()
+20003b78 g     O .bss	00000002 dma_channel_allocated_mask
+00006f74 g     F .text.itcm	00000024 ExFatFile::getModifyDateTime(unsigned short*, unsigned short*)
+00012fd0 g     F .fini	00000000 _fini
+00006310 g     F .text.itcm	00000014 BandLimitedWaveform::BandLimitedWaveform()
+0000b914 g     F .text.itcm	00000044 SharedSpiCard::isBusy()
+20003654 g     O .bss	00000008 AudioOutputPT8211::dma
+60001020 g     O .text.headers	0000000c BootData
+000048c0 g     F .text.itcm	00000020 month()
+200035b4 g     O .bss	00000008 AudioOutputMQS::dma
+000077fc g     F .text.itcm	00000032 ExFatFile::openNext(ExFatFile*, int)
+0000e62c g     F .text.itcm	00000016 Print::print(long)
+00009188 g     F .text.itcm	0000001e FatFile::close()
+0000f9a4 g     F .text.itcm	00000004 Panic_Temp_isr
+00005890  w    F .text.itcm	00000048 SDFile::~SDFile()
+00009230 g     F .text.itcm	00000162 FatFile::mkdir(FatFile*, FatLfn_t*)
+0000c33c  w    F .text.itcm	00000002 SdioCard::~SdioCard()
+00005444  w    F .text.itcm	00000018 StreamFile<FsBaseFile, unsigned long long>::peek()
+000055f4  w    F .text.itcm	00000054 File::write(unsigned char)
+00002914 g     F .text.itcm	000000d4 delayHK(unsigned long)
+20002f04 g     O .bss	000004d4 SD
+0000c6d0 g     F .text.itcm	000000d4 SdioCard::erase(unsigned long, unsigned long)
+00003d40 g     F .text.itcm	000001fc NosepokeProbIndependentMachine()
+0000d838 g     F .text.itcm	00000054 AudioStream::release(audio_block_struct*)
+0000e824 g     F .text.itcm	00000026 String::String(char const*)
+20002080 g     O .data	00000004 _impure_ptr
+200009dc  w    O .data	00000024 vtable for Stream
+00007204 g     F .text.itcm	0000002c ExFatFile::peek()
+000119a8 g     F .text.itcm	0000011c scalbn
+200007fc  w    O .data	00000024 vtable for StreamFile<FsBaseFile, unsigned long long>
+20003634 g     O .bss	00000008 AudioOutputSPDIF::dma
+000055ac  w    F .text.itcm	00000014 SDFile::write(void const*, unsigned int)
+0000d88c g     F .text.itcm	00000034 AudioStream::transmit(audio_block_struct*, unsigned char)
+0000b710 g     F .text.itcm	00000028 FsVolume::open(char const*, int)
+0000c2dc g     F .text.itcm	0000000c SdioCard::errorCode() const
+0000e4b8 g     F .text.itcm	0000005c IntervalTimer::end()
+00009530 g     F .text.itcm	0000000e FatFile::open(FatVolume*, char const*, int)
+00005598  w    F .text.itcm	00000014 StreamFile<FsBaseFile, unsigned long long>::write(unsigned char const*, unsigned int)
+60001ed8 g       .text.code	00000000 __preinit_array_end
+2000358c g     O .bss	00000008 AudioInputTDM::dma
+0000e77c g     F .text.itcm	0000000c randomSeed(unsigned long)
+2000360c g     O .bss	00000008 AudioOutputTDM2::dma
+00004860 g     F .text.itcm	00000020 minute()
+00008cf4 g     F .text.itcm	00000036 ExFatPartition::dirCache(DirPos_t*, unsigned char)
+0000d790 g     F .text.itcm	000000a8 AudioStream::allocate()
+0000e21c g     F .text.itcm	00000166 HardwareSerial::IRQHandler()
+000027fc g     F .text.itcm	000000b8 setup
+20001700 g     O .data	0000006c usb_descriptor_list
+0000c4bc g     F .text.itcm	00000020 SdioCard::status()
+00009210 g     F .text.itcm	00000020 FatFile::getModifyDateTime(unsigned short*, unsigned short*)
+000050c0  w    F .text.itcm	00000002 Print::flush()
+00011878 g     F .text.itcm	00000010 nan
+00006a04  w    F .text.itcm	00000062 SDClass::rmdir(char const*)
+200033f0 g     O .bss	00000018 SpeakerPwdAO
+00009584 g     F .text.itcm	0000019a FatFile::read(void*, unsigned int)
+00009578 g     F .text.itcm	0000000c FatFile::openRoot(FatVolume*)
+20003578 g     O .bss	00000004 ExFatVolume::m_cwv
+000116cc g     F .text.itcm	00000184 __ieee754_sqrt
+20068000 g       .text.csf	00000000 _estack
+0000b624 g     F .text.itcm	00000004 operator new(unsigned int, unsigned long*)
+0000dbb4 g     F .text.itcm	00000034 DMAChannel::release()
+00005648  w    F .text.itcm	00000058 File::read()
+00010a04 g     F .text.itcm	00000050 usb_serial_write_buffer_free
+0000d91c g     F .text.itcm	000000d4 AudioConnection::connect()
+20003b8e g     O .bss	00000001 nextStateMachine
+20003584 g     O .bss	00000008 AudioInputPDM::dma
+000106e0 g     F .text.itcm	00000108 usb_serial_configure
+00005984  w    F .text.itcm	000000bc File::~File()
+2000359c g     O .bss	00000008 AudioInputPDM2::dma
+20002ac0 g       .data	00000000 _edata
+20002ebc g     O .bss	00000004 NosepokeProbIndependentVar
+00008db4 g     F .text.itcm	00000024 ExFatPartition::fatPut(unsigned long, unsigned long)
+20003b8d g     O .bss	00000001 external_psram_size
+00000180  w    F .text.itcm	0000000c DI_HDW::~DI_HDW()
+0000c33c  w    F .text.itcm	00000002 SdioCard::~SdioCard()
+0000d4c0 g     F .text.itcm	00000054 FsName::get16()
+0000b7e0  w    F .text.itcm	00000002 DedicatedSpiCard::~DedicatedSpiCard()
+0000bf2c g     F .text.itcm	00000074 DedicatedSpiCard::readSectorsCallback(unsigned long, unsigned char*, unsigned int, void (*)(unsigned long, unsigned char*, void*), void*)
+0000b75c g     F .text.itcm	00000012 DedicatedSpiCard::setDedicatedSpi(bool)
+00008b00 g     F .text.itcm	00000068 ExFatFile::hashName(ExName_t*)
+00009058 g     F .text.itcm	0000007c FatFile::addDirCluster()
+0001037c  w    F .text.itcm	00000004 usb_serial_class::availableForWrite()
+0000af68 g     F .text.itcm	0000002c FatPartition::freeClusterCount_cb_fat32(unsigned long, unsigned char*, void*)
+0000de40 g     F .text.itcm	00000040 nvic_execution_priority()
+2000230c g     O .data	00000080 isr_table_gpio4
+0000f144 g     F .text.itcm	0000004e ultoa
+00006864  w    F .text.itcm	00000002 SDClass::~SDClass()
+00004880 g     F .text.itcm	00000020 second()
+0000b544 g     F .text.itcm	00000080 FsBaseFile::open(FsVolume*, char const*, int)
+00001fa0 g     F .text.itcm	00000064 InitializeStateMachine()
+0000f13c g     F .text.itcm	00000004 operator new(unsigned int)
+0000dc68 g     F .text.itcm	00000044 EventResponder::runFromInterrupt()
+2000207c g     O .data	00000004 __malloc_trim_threshold
+0001036c  w    F .text.itcm	00000004 usb_serial_class::peek()
+0000da40 g     F .text.itcm	0000009c AudioConnection::disconnect()
+20002457 g     O .data	00000001 startStateMachine
+00006858  w    F .text.itcm	00000004 SdCardInterface::setDedicatedSpi(bool)
+00004f10 g     F .text.itcm	00000024 AudioOutputAnalogStereo::update()
+0000c32c g     F .text.itcm	00000010 SdioCard::readOCR(unsigned long*)
+00005cd4 g     F .text.itcm	00000038 BandLimitedWaveform::process_step(int)
+0000dd18 g     F .text.itcm	00000090 HardwareSerial::read()
+00008d6c g     F .text.itcm	00000046 ExFatPartition::dirSeek(DirPos_t*, unsigned long)
+20003408 g     O .bss	0000001c WaterDO
+0000ae10 g     F .text.itcm	00000124 FatFile::getName8(char*, unsigned int)
+00001940 g     F .text.itcm	00000054 Interrupt_LickDI()
+20003644 g     O .bss	00000008 AudioOutputI2SHex::dma
+00007338 g     F .text.itcm	000003b8 ExFatFile::openPrivate(ExFatFile*, ExName_t*, int)
+00004840 g     F .text.itcm	00000020 hour()
+0000c7fc g     F .text.itcm	00000078 SdioCard::writeStop()
+0000da1c g     F .text.itcm	00000024 AudioConnection::AudioConnection(AudioStream&, AudioStream&)
+00006f3c g     F .text.itcm	00000014 ExFatFile::close()
+60001ed8 g       .text.code	00000000 __init_array_start
+00011e00  w    F .text.itcm	00000002 .hidden __aeabi_idiv0
+0000e910 g     F .text.itcm	0000008c analogRead
+20001b9c g     O .data	00000004 F_BUS_ACTUAL
+00002564 g     F .text.itcm	0000012a SetInitialAlarms()
+00008340 g     F .text.itcm	00000040 ExFatFormatter::writeUpcaseByte(unsigned char)
+20002eb4 g     O .bss	00000004 NosepokeProb70Var
+0000692c  w    F .text.itcm	00000074 SDClass::rename(char const*, char const*)
+00002330 g     F .text.itcm	0000015c FinalSetup()
+20000e24 g     O .data	0000002a pin_to_channel
+20003b76 g     O .bss	00000002 AudioSynthNoiseWhite::instance_count
+00001994 g     F .text.itcm	00000070 CreateHDW_DO(DO_HDW&, String, unsigned char, unsigned char)
+200037a0 g     O .bss	00000004 dailyIntake
+0000e69c g     F .text.itcm	0000005a Stream::parseInt(char)
+0000248c g     F .text.itcm	000000d8 SetWeeklyAlarms(timeDayOfWeek_t, int, int, int, alarmType, int, stateMachine, stateMachine, stateMachine)
+20002424 g     O .data	00000015 trainingProtocol
+00000000 g       .text.itcm	00000000 _stext
+0000db14 g     F .text.itcm	000000a0 DMAChannel::begin(bool)
+20001c68 g     O .data	00000004 IntervalTimer::nvic_priorites
+0000b7e4  w    F .text.itcm	00000006 SharedSpiCard::end()
+00012ac0 g     F .text.itcm	000000dc strlen
+00009540 g     F .text.itcm	00000038 FatFile::openCluster(FatFile*)
+00005ac0 g     F .text.itcm	00000108 AudioSynthWaveformSineModulated::update()
+000099cc g     F .text.itcm	000000ae FatFile::seekSet(unsigned long)
+00005d70 g     F .text.itcm	0000002e BandLimitedWaveform::process_active_steps_saw(unsigned long)
+60001f54 g     O .text.progmem	00000016 usb_string_product_name_default
+20003b6c g     O .bss	00000004 weeklyQuota
+2000366c g     O .bss	00000008 AudioOutputI2SQuad::dma
+0000c610 g     F .text.itcm	0000006c SdioCard::sectorCount()
+20002ee4 g     O .bss	00000020 ReportStr
+00009b54 g     F .text.itcm	000000ac FatFile::openNext(FatFile*, int)
+60001720  w    F .text.code	00000002 startup_middle_hook
+0000e540 g     F .text.itcm	0000004a Print::print(String const&)
+20000a30 g     O .data	00000070 vtable for SdioCard
+0000af34 g     F .text.itcm	00000004 FatFile::getName(char*, unsigned int)
+60001728 g     F .text.code	000000e4 configure_cache
+00006850  w    F .text.itcm	00000004 SdCardInterface::hasDedicatedSpi()
+0000bcfc  w    F .text.itcm	00000008 SharedSpiCard::readCSD(csd_t*)
+200038b8 g     O .bss	00000004 sCh2
+2000365c g     O .bss	00000008 AudioOutputSPDIF2::dma
+20003b4c g     O .bss	00000004 stateMachineStartTime
+200008f4 g     O .data	0000000c vtable for AudioSynthWaveform
+0000cffc g     F .text.itcm	0000006c SdioCard::readStart(unsigned long)
+00000000  w      *UND*	00000000 _Jv_RegisterClasses
+20003614 g     O .bss	00000008 AudioInputAnalog::dma
+0000d1d4 g     F .text.itcm	00000104 SdSpiArduinoDriver::activate()
+0000de80 g     F .text.itcm	000002c4 HardwareSerial::begin(unsigned long, unsigned short)
+60001ed8 g       .text.code	00000000 __preinit_array_start
+000102e8 g     F .text.itcm	00000024 usb_receive
+2000082c  w    O .data	0000000c vtable for AudioStream
+00008c48 g     F .text.itcm	000000aa ExFatPartition::bitmapModify(unsigned long, unsigned long, bool)
+00000180  w    F .text.itcm	0000000c DI_HDW::~DI_HDW()
+00009a7c g     F .text.itcm	000000d6 FatFile::openCachedEntry(FatFile*, unsigned short, int, unsigned char)
+00018800 g       *ABS*	00000000 _flashimagelen
+00009c0c g     F .text.itcm	000000d6 FatFile::timestamp(unsigned char, unsigned short, unsigned char, unsigned char, unsigned char, unsigned char, unsigned char)
+0000bf14 g     F .text.itcm	00000016 SharedSpiCard::syncDevice()
+00011ae0 g     F .text.itcm	0000000a __aeabi_atexit
+00000000  w      *UND*	00000000 __register_frame_info
+0000f7ac g     F .text.itcm	00000030 rtc_get
+00004940 g     F .text.itcm	00000010 timeStatus()
+000078c0 g     F .text.itcm	000000be ExFatFile::remove()
+70000000 g       .bss.extram	00000000 _extram_start
+0000dcac g     F .text.itcm	00000004 pendablesrvreq_isr
+00006bf0  w    F .text.itcm	0000003c SDClass::totalSize()
+2000362c g     O .bss	00000008 AudioInputSPDIF3::dma
+0000dadc g     F .text.itcm	00000038 AudioConnection::~AudioConnection()
+000050bc  w    F .text.itcm	00000004 Print::availableForWrite()
+20002e78 g     O .bss	00000030 Nosepoke2DI
+0000cbdc g     F .text.itcm	00000364 SdioCard::begin(SdioConfig)
+00006f50 g     F .text.itcm	00000024 ExFatFile::getCreateDateTime(unsigned short*, unsigned short*)
+000107e8 g     F .text.itcm	000000ec usb_serial_read
+200036c0 g     O .bss	00000010 analogInHDW
+000045f4 g     F .text.itcm	000001a8 breakTime(long, tmElements_t&)
+0000e5ac g     F .text.itcm	0000007e Print::printNumber(unsigned long, unsigned char, unsigned char)
+00010228 g     F .text.itcm	00000068 usb_config_tx
+0000b0a4 g     F .text.itcm	000000f0 FatPartition::fatGet(unsigned long, unsigned long*)
+20003734 g     O .bss	00000014 audioCon2
+00011e7c g     F .text.itcm	00000010 free
+000089e8 g     F .text.itcm	0000004c ExFatFile::cmpName(DirName_t const*, ExName_t*)
+000053f4  w    F .text.itcm	0000001a SDFile::size()
+0000ad80 g     F .text.itcm	00000090 FatFile::getSFN(char*, unsigned int)
+00005850  w    F .text.itcm	00000040 SDFile::~SDFile()
+2000243c  w    O .data	00000016 usb_string_serial_number
+000021e8 g     F .text.itcm	00000148 SetDailyAlarms(int, int, int, alarmType, int, stateMachine, stateMachine, stateMachine)
+0000d068 g     F .text.itcm	000000cc SdioCard::readSector(unsigned long, unsigned char*)
+0000c310 g     F .text.itcm	0000001c SdioCard::readCSD(csd_t*)
+
+
