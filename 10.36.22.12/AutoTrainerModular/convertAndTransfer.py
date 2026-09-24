@@ -102,6 +102,16 @@ def mountFs(ip, fsDest, mountTo, creds, exitOnFail, remount):
     else:
         logPrint("mountFs: FAILED to mount NAS:\n%s" % cmd)
         if exitOnFail:
+            # Carrying on is what makes a failed mount dangerous: mountTo
+            # is then a plain local directory, so the transfer writes to
+            # the SD card, Delete_Moved removes the originals, and
+            # verify() still reports success because the files are
+            # exactly where it looks for them.
+            logPrint(
+                "mountFs: refusing to continue -- %s is not a mount, so a "
+                "transfer would write to local disk and delete the sources"
+                % mountTo
+            )
             exit()
 
 
@@ -584,7 +594,7 @@ def main():
         fsDest=userInfo["Destination_In_Fs"],
         mountTo=mountpoint,
         creds=userInfo["Nas_Creds"],
-        exitOnFail=False,
+        exitOnFail=True,
         remount=remountNas,
     )
 
