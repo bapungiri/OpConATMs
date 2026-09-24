@@ -225,6 +225,9 @@ def RPiFileUpload(ssh, localDir, remoteDir, fileExt, iPrint=True):
         ".md",
         "RemoteJobSubmission",
         "GetJobResult",
+        # Written by the rig, not by us: uploading ours wipes the record
+        # of what MainCode.py resolved at startup on that box.
+        "log.out",
     ]
 
     try:

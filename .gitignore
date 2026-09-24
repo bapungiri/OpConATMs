@@ -3,3 +3,8 @@ __pycache__/
 
 # Nested clone of this same tree (an older snapshot), not a rig directory.
 /OpConATMs/
+
+# Written on the rig by MainCode.py (resolved Output_Dir and any
+# fallback). Tracking it meant every deploy pushed a stale copy over
+# the rig's own record.
+log.out
