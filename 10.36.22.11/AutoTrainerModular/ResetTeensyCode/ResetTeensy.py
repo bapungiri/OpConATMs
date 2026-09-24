@@ -1,16 +1,26 @@
 #! /usr/bin/python
 
-import RPi.GPIO as GPIO
+import gpiod
+from gpiod.line_settings import LineSettings, Direction, Value
 import time
 
 ProgPin = 19
 
 try:
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(ProgPin, GPIO.OUT)
-    GPIO.output(ProgPin, GPIO.LOW)
+    request = gpiod.request_lines(
+        "/dev/gpiochip4",
+        consumer="reset-teensy",
+        config={
+            ProgPin: LineSettings(
+                direction=Direction.OUTPUT,
+                output_value=Value.INACTIVE,
+            ),
+        },
+    )
     time.sleep(0.5)
-
-    GPIO.output(ProgPin, GPIO.HIGH)
+    request.set_value(ProgPin, Value.ACTIVE)
 finally:
-    GPIO.cleanup()
+    try:
+        request.release()
+    except Exception:
+        pass

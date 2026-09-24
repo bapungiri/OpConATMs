@@ -1056,6 +1056,28 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                     if needHeaderNew:
                         with open(trialSummaryFileN, "a") as tsf_init:
                             tsf_init.write(TRIAL_SUMMARY_HEADER)
+                    else:
+                        # Diagnostic: rotated .trial.csv files sometimes end up
+                        # with no header, which makes a reader take their first
+                        # trial row as the column names. Record what the size
+                        # check actually saw, and the file we rotated away from,
+                        # so a collision can be told apart from a stale stat.
+                        # Never raise: this runs inside the acquisition loop.
+                        try:
+                            writeLogFile(
+                                msgFileN,
+                                [
+                                    "Warning:",
+                                    "       Skipped header for rotated trial file.",
+                                    "       new : {} ({} bytes)".format(
+                                        trialSummaryFileN,
+                                        os.path.getsize(trialSummaryFileN),
+                                    ),
+                                    "       prev: {}".format(prevTrial),
+                                ],
+                            )
+                        except Exception:
+                            pass
 
             # Check exit signal
             if exitInst.exitStatus:

@@ -27,10 +27,10 @@ static void updateRewProbGeneric(NosepokeImpureStruct &st, int unstrProb)
     {
         prob2 = DrawDependentPair(prob1); // structured: complementary probabilities
     }
-    // st.probArray[0] = prob1;
-    // st.probArray[1] = prob2;
-    st.probArray[0] = 10;
-    st.probArray[1] = 80;
+    st.probArray[0] = prob1;
+    st.probArray[1] = prob2;
+    // st.probArray[0] = 10;
+    // st.probArray[1] = 80;
 }
 
 static void reportProbGeneric(const NosepokeImpureStruct &st)
@@ -44,8 +44,8 @@ static void reportProbGeneric(const NosepokeImpureStruct &st)
 
 static int changeBlockGeneric(const NosepokeImpureStruct &st)
 {
-    const int min_length = 30; // minimum lick trials before allowing switch
-    const int switchProb = 5;  // percent chance after minimum
+    const int min_length = 100; // minimum lick trials before allowing switch
+    const int switchProb = 2;   // percent chance after minimum
     if (st.trialCounter >= min_length)
     {
         unsigned int randomDraw = random(100);
@@ -78,6 +78,8 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
 {
     // ---------for unstructured probability--------
     int unstrProb = 80;
+    // ---------max blocks before session stops (-1 = no limit, alarm-based only)--------
+    int maxBlocks = -1;
     // -----------------
 
     st.unstructuredProb = unstrProb; // store for logging
@@ -118,7 +120,7 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
                 unsigned int whenNosepoke = (millis() - stateMachineStartTime);
 
                 // Detect which port
-                n = !Nosepoke1DI.diRead() ? 1 : (!Nosepoke2DI.diRead() ? 2 : n);
+                n = Nosepoke1DI.diRead() ? 1 : (Nosepoke2DI.diRead() ? 2 : n);
 
                 // Reporting port number and time of nosepoke, removed WhichNosepoke()
                 ReportData(81, n, whenNosepoke);
@@ -222,6 +224,19 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
                 break;
 
         } // end trials loop
+
+        // Block-based stop: end session after maxBlocks completed
+        if (maxBlocks > 0 && st.blockNum >= maxBlocks)
+        {
+            ReportData(111, st.trialCounter, (millis() - stateMachineStartTime));
+            ReportData(121, st.blockNum, (millis() - stateMachineStartTime));
+            ReportData(63, st.rewardCounter, (millis() - stateMachineStartTime));
+            EndCurrentStateMachine();
+            RunStartANDEndStateMachine(&endStateMachine);
+            EndCurrentTrainingProtocol();
+            return;
+        }
+
         if (stateStop)
             break;
 

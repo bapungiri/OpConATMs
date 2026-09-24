@@ -7,6 +7,23 @@
 
 #include "HardwareLibrary/HardwareClass.h" // ensure trialSummaryQueue & structs are visible
 
+// Millisecond epoch anchor updated by serial time-sync commands.
+// This decouples timestamping precision from TimeLib second granularity.
+static uint64_t g_epochAnchorMs = 0;
+static unsigned long g_epochAnchorLocalMillis = 0;
+static bool g_epochAnchorValid = false;
+
+// Drift-rate compensation: estimated ratio of real elapsed time to Teensy
+// millis() elapsed time, measured between consecutive high-resolution 'M'
+// syncs. Applied continuously (not just stepped at sync points) to correct
+// for the Teensy crystal's fixed frequency error between syncs.
+static double g_epochRate = 1.0;
+// Minimum interval (Teensy ms) required between two 'M' syncs before trusting
+// a freshly computed rate; shorter intervals are too noisy (serial/quantization jitter).
+#define MIN_RATE_CALC_INTERVAL_MS 30000UL
+
+uint64_t epochMillis();
+
 // -----------------------------------------   CreateHDW_DI
 void CreateHDW_DI(DI_HDW &pin, String pinNAM, uint8_t pinN, OnInterruptFunc Func, int interruptMode)
 {
@@ -525,7 +542,7 @@ void ReportData(int type, int value, int sessionTime)
   ReportStr.currentSM = currentStateMachine;
   ReportStr.currentTP = currentTrainingProtocol;
   ReportStr.smTime = sessionTime;
-  ReportStr.nowTime = now();
+  ReportStr.nowTime = (unsigned long)(epochMillis() / 1000ULL);
   ReportStr.dIntake = dailyIntake;
   ReportStr.wIntake = weeklyIntake;
 
@@ -595,7 +612,7 @@ void CheckArraySize(String parName, int arrSize, int S)
 // -----------------------------------------   SyncInitialTime
 void SyncInitialTime()
 {
-  Serial.println("I,Waiting for time sync message from master R-Pi (e.g. T1506298500)");
+  Serial.println("I,Waiting for time sync message from master R-Pi (e.g. T1506298500 or M1506298500123)");
   while (timeStatus() == timeNotSet)
   {
     serialEvent();
@@ -787,10 +804,57 @@ void serialEvent()
       long pctime;
       pctime = Serial.parseInt();
       setTime(pctime);
+      g_epochAnchorMs = (uint64_t)pctime * 1000ULL;
+      g_epochAnchorLocalMillis = millis();
+      g_epochAnchorValid = true;
       DigitalClockDisplay();
 
       // Reset Teensy health report time
       timeStampTeensy = now();
+    }
+
+    // Syncing millisecond epoch time: M<unix_epoch_ms>\n
+    if (firstChar == 'M')
+    {
+      String msStr = Serial.readStringUntil('\n');
+      msStr.trim();
+
+      if (msStr.length() > 0)
+      {
+        uint64_t pctimeMs = strtoull(msStr.c_str(), NULL, 10);
+        if (pctimeMs > 0)
+        {
+          unsigned long nowLocalMillis = millis();
+
+          // Estimate the Teensy's clock drift rate using the previous
+          // 'M' sync anchor before it gets overwritten below.
+          if (g_epochAnchorValid)
+          {
+            uint64_t realElapsedMs = pctimeMs - g_epochAnchorMs;
+            unsigned long teensyElapsedMs = nowLocalMillis - g_epochAnchorLocalMillis;
+
+            if (teensyElapsedMs >= MIN_RATE_CALC_INTERVAL_MS && realElapsedMs > 0)
+            {
+              double rate = (double)realElapsedMs / (double)teensyElapsedMs;
+              // Sanity clamp (+/-0.5%): reject bogus values from a
+              // corrupted/garbled sync command rather than corrupting the rate.
+              if (rate > 0.995 && rate < 1.005)
+              {
+                g_epochRate = rate;
+              }
+            }
+          }
+
+          g_epochAnchorMs = pctimeMs;
+          g_epochAnchorLocalMillis = nowLocalMillis;
+          g_epochAnchorValid = true;
+          setTime((time_t)(pctimeMs / 1000ULL));
+          Serial.println("I,Setting millisecond epoch anchor ...");
+
+          // Reset Teensy health report time
+          timeStampTeensy = now();
+        }
+      }
     }
 
     // Changing alarms
@@ -831,19 +895,25 @@ void writeGlobalParameters()
 // Returns Unix epoch in milliseconds (64‑bit)
 uint64_t epochMillis()
 {
-  static time_t lastSec = 0;
-  static unsigned long secBaseMillis = 0;
-  time_t s = now();
-  // When the second value changes, capture the millis() at that boundary
-  if (s != lastSec)
+  if (g_epochAnchorValid)
   {
-    lastSec = s;
-    secBaseMillis = millis();
+    // Apply the drift-rate correction continuously (not just at sync
+    // points) to compensate for the Teensy crystal's frequency error.
+    unsigned long elapsedTicks = millis() - g_epochAnchorLocalMillis; // unsigned arithmetic handles rollover
+    double correctedElapsedMs = (double)elapsedTicks * g_epochRate;
+    return g_epochAnchorMs + (uint64_t)(correctedElapsedMs + 0.5);
   }
-  // millisSinceSec: how many ms since the captured second boundary
-  unsigned long msSinceSec = millis() - secBaseMillis; // handles rollover via unsigned arithmetic
-  if (msSinceSec > 999)
-    msSinceSec = 999; // clamp (in case of slight scheduling lag)
-  return (uint64_t)s * 1000ULL + (uint64_t)msSinceSec;
+
+  // Fallback if no sync has been received yet.
+  static uint64_t fallbackBaseMs = 0;
+  static unsigned long fallbackLocalMillis = 0;
+  static bool fallbackInitialized = false;
+  if (!fallbackInitialized)
+  {
+    fallbackBaseMs = (uint64_t)now() * 1000ULL;
+    fallbackLocalMillis = millis();
+    fallbackInitialized = true;
+  }
+  return fallbackBaseMs + (uint64_t)(millis() - fallbackLocalMillis);
 }
 #endif

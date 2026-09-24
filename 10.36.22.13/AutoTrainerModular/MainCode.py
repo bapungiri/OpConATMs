@@ -434,10 +434,21 @@ def sendEmail(errorMessage, userConfig, msgFileN, emailSubject=None):
         recipientEmail = userConfig["Email"]
         emailUser = userConfig["WD_Email"]
 
-        tmpCred = userConfig["WD_Pass"].split("|||")
-        for i in range(int(tmpCred[0])):
-            tmpCred[1] = base64.b64decode(tmpCred[1])
-        emailPass = tmpCred[1]
+        raw_pass = userConfig.get("WD_Pass", "")
+        parts = raw_pass.split("|||") if raw_pass else []
+        rounds = int(parts[0]) if parts and parts[0].isdigit() else 1
+        secret = parts[1] if len(parts) > 1 else ""
+        for _ in range(max(1, rounds)):
+            try:
+                secret = base64.b64decode(secret)
+            except Exception:
+                break
+        # smtplib expects str; decode any bytes returned by base64
+        emailPass = (
+            secret.decode("utf-8")
+            if isinstance(secret, (bytes, bytearray))
+            else str(secret)
+        )
 
         ipAddress = netifaces.ifaddresses("eth0")[netifaces.AF_INET][0]["addr"]
 
@@ -1045,6 +1056,28 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                     if needHeaderNew:
                         with open(trialSummaryFileN, "a") as tsf_init:
                             tsf_init.write(TRIAL_SUMMARY_HEADER)
+                    else:
+                        # Diagnostic: rotated .trial.csv files sometimes end up
+                        # with no header, which makes a reader take their first
+                        # trial row as the column names. Record what the size
+                        # check actually saw, and the file we rotated away from,
+                        # so a collision can be told apart from a stale stat.
+                        # Never raise: this runs inside the acquisition loop.
+                        try:
+                            writeLogFile(
+                                msgFileN,
+                                [
+                                    "Warning:",
+                                    "       Skipped header for rotated trial file.",
+                                    "       new : {} ({} bytes)".format(
+                                        trialSummaryFileN,
+                                        os.path.getsize(trialSummaryFileN),
+                                    ),
+                                    "       prev: {}".format(prevTrial),
+                                ],
+                            )
+                        except Exception:
+                            pass
 
             # Check exit signal
             if exitInst.exitStatus:

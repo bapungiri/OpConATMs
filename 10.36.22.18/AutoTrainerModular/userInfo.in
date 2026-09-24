@@ -1,0 +1,100 @@
+# ---- Box & Experiment Information
+RPi_IP              = 10.36.22.18
+Experiment_Name     = Nosepoke2port
+Box_Name            = F06
+Subject_Name        = BGM9
+Daily_Water         = 2000
+Water_Minimum       = 75%
+TimeSyncFreq        = 1HR
+Daily_Dat_File      = 13:00
+
+# ---- Analog Settings
+Analog              = False
+Before_Buffer       = 1000
+
+# ---- Result File(s) Settings [Delete_Old_Results: Keeps last modified files]
+Get_Exp_Result      = False
+Result_Path         = 
+Remote_File_Exts    = *.dat, *.log
+Get_Analog_Results  = False		# True if you want analog input
+Delete_Old_Results  = False
+Output_Name_Freq    = 24HR
+Output_Dir          = /home/pi/ExpData
+Zip_On_Rotate  	    = False
+
+# ---- Automated File Transfer Settings, transfers all files with exts "File_Exts"
+# ---- Finds files recursively in "Look_In_Paths", ignores files/dirs with names starting with an under_score (for ex: "_CtLogs")
+# ---- Run convertAndTransfer.py (python3) manually to transfer whenever you want
+# /Destination_In_Nas/Experiment_Name/Box_Name/Subject_Name/ | .dat, .log > ./ | .mp4, .frames, .events > ./Video/
+Transfer_Enabled    = True
+Raw_Data_Mode	    = True
+Daily_Time          = 13:00
+Look_In_Paths       = /home/pi/ExpData/BGM9
+File_Exts           = dat, log, mp4, events, frames, h264, csv
+Specific_Dests      = True    
+Delete_Moved        = True
+Keep_Latest         = True     # do not delete latest files corresponding to each ext
+Skip_Latest         = True    # do not move latest files corresponding to each ext
+Nas_Ip              = 10.36.22.120
+Nas_Creds           = /home/pi/.smbcredentials
+Destination_In_Fs   = bapun.giri/Bandit2ArmData/BGdataset/Paradigm_9505/intact/
+Mountpoint          = /home/pi/NASMount/
+Remount             = True    # unmount and mount FS to Mountpoint to ensure Destination_In_Fs is the mounted path
+Logs_Dir            =
+
+# ---- Arduino Build & Termination Settings [Delete_Kill_All: Kills jobs & delete folders]
+Kill_OpCon          = False
+Reset_Teensy_Build  = True
+Delete_Kill_All     = False		# true if you want to delete all the code from the Pi at the end of an experiment
+
+# ---- Serial Settings
+Serial_TimeOut      = 3900
+
+# ---- Camera Settings [Run_Camera-> True, False, Only:Runs camera/transfer only]
+# ---- Gain: ShutterSpeed, ISO, WG1, WG2, AnGain, DiGain, Rotation, FPS, BitRate
+Run_Camera          = True
+Kill_Camera         = False
+Kill_Transfer       = False
+Use_Setup_Gain      = True
+Setup_Gain_Path     = /home/pi/OpConPiCamera/Video
+
+Camera_1            = [10.36.22.18 ; camInfoM.in]
+Gain_1              = False
+
+# ---- Audio Recording Settings [Run_Microphone-> True, False, Only:Runs microphone only]
+Run_Microphone      = False
+Microphone_RPi_IP   = 140.247.178.60
+Audio_Setting_File  = audioInfo.in
+Kill_Microphone     = False
+
+# ---- RC Storage (Add_Experiment_Dir-> True: \Storage_Dir\Experiment_Name\..., Box: \Storage_Dir\Box_Name-Subject_Name\...)
+Rsync_OpCon         = True
+Storage_Dir         = 
+Rsync_Freq_Sec      = 300
+Add_Experiment_Dir  = Box
+Exclude_Exts        = *.pyc; *.in.gz
+Storage_Root        = 
+Storage_Host        = 
+
+# ---- User Information
+Name                = Bapun
+Email               = bapunk@iisc.ac.in
+Enable_Email        = True
+
+# ---- Teensy Program and Reset Settings
+Reset_Pin           = 13
+Program_Pin         = 19
+GPIO_Pin_Type       = BCM
+
+# ---- Time Sync Server
+NTPServer           = ntp.iisc.ac.in
+
+# ---- RPi Login and Watchdog Email Information
+Cred_File           = cred.in.gz
+RPi_ID              = pi
+RPi_Pass            = Dlabrpi!
+WD_Email            = dhawalelabrpi@gmail.com
+WD_Pass             = 2|||Y1hOMVpIZG9hMlZ4YTNscGJHcHdjQT09
+WD_SMTP             = smtp.gmail.com
+WD_SMTP_Port        = 465
+WD_SSL              = True

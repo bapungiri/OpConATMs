@@ -69,11 +69,11 @@ stateMachine trainingProtocol[numTrainingProtocol][maxNumStage][3] = {
     // }
     // New training protocol for nosepoke task, id = 0, 8/2/23
     {
-        // {LickTrain,               NosepokeRewardNonSession},
-        // {LickTest,               NosepokeRewardNonSession},
-        // {Nosepoke1sound,         NosepokeRewardNonSession},
-        // {Nosepoke1sound,         DoNothing},
-        // {NosepokeProb70,         DoNothing},
-        // {NosepokeProb40,	       DoNothing},
+        // {LickTrain, NosepokeRewardNonSession},
+        // {LickTest, NosepokeRewardNonSession},
+        // {Nosepoke1sound, NosepokeRewardNonSession},
+        // {Nosepoke1sound, DoNothing},
+        // {NosepokeProb70, DoNothing},
+        // {NosepokeProb40, DoNothing},
         {NosepokeImpure, DoNothing}}};
 #endif

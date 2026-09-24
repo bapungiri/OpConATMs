@@ -62,6 +62,13 @@ def _decode_password(encoded):
             secret = base64.b64decode(secret)
         except Exception:
             break
+    if isinstance(secret, (bytes, bytearray)):
+        try:
+            secret = secret.decode("utf-8")
+        except Exception:
+            secret = secret.decode("latin-1", "ignore")
+    else:
+        secret = str(secret)
     return secret
 
 

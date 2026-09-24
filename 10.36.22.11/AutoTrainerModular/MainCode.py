@@ -14,14 +14,14 @@ import base64  # Python base64 data encodings
 import email.mime.text  # Python Multipurpose Internet Mail Extensions (MIME)
 import netifaces  # Python module to find device IP address
 import random  # Python random number module
-import RPi.GPIO as GPIO  # Python RPi GPIO utility
+import gpiod  # Python gpiod GPIO utility (Pi 5 compatible)
+from gpiod.line_settings import LineSettings, Direction, Value
 import re  # Python regular expression module
 import signal  # Python signal module [e.g., exit signal]
 from PIL import Image, ImageDraw, ImageFont  # Python Image module [change background]
 
 import pickle
 import StorageMonitor  # Background disk usage monitor
-
 
 TRIAL_SUMMARY_HEADER = (
     "eventCode,port1Prob,port2Prob,chosenPort,rewarded,trialId,blockId,"
@@ -194,7 +194,7 @@ def getUserConfig(fileName, splitterChar):
             if not line:
                 continue
             if splitterChar in line:
-                (settingName, settingValue) = line.split(splitterChar, 1)
+                settingName, settingValue = line.split(splitterChar, 1)
                 settingName = settingName.strip()
                 settingValue = settingValue.strip()
                 # Optionally strip wrapping quotes from values
@@ -222,10 +222,10 @@ def compileUploadTeensy(userConfig):
     print("   ... Killing the previous Teensy process if running.")
     subprocess.call(["pkill", "teensy"])
 
-    compileCmd = "arduino-cli compile -v /home/pi/AutoTrainerModular/AutoTrainerModular.ino \
-                  --fqbn teensy:avr:teensy41 \
-                  --output-dir /home/pi/AutoTrainerModular/Build \
-                  --libraries /home/pi/.arduino15/packages/teensy/hardware/avr/1.57.2/libraries"
+    compileCmd = "arduino --verify --board teensy:avr:teensy41 \
+                  --pref build.path=/home/pi/AutoTrainerModular/Build \
+                  --verbose \
+                  /home/pi/AutoTrainerModular/AutoTrainerModular.ino"
 
     # compileCmd = "xvfb-run -a arduino --upload AutoTrainerModular.ino --board teensy:avr:teensy41:usb=serial,speed=600,opt=osstd"
 
@@ -268,6 +268,19 @@ def compileUploadTeensy(userConfig):
                 if isinstance(line, bytes):
                     line = line.decode("utf-8", "ignore")
                 print("   ... " + line)
+        except Exception:
+            pass
+        try:
+            if subError:
+                errText = (
+                    subError.decode("utf-8", "ignore")
+                    if isinstance(subError, bytes)
+                    else str(subError)
+                )
+                if errText.strip():
+                    print("   ... --- STDERR ---")
+                    for line in errText.splitlines():
+                        print("   ... " + line)
         except Exception:
             pass
         print("   ... ========================")
@@ -347,7 +360,7 @@ def getDSTInfo(fileName):
         for L in File:
             L = L.strip()
             S = L.split(",")
-            (Year, Days) = [S[0].strip(), [S[1].strip(), S[2].strip()]]
+            Year, Days = [S[0].strip(), [S[1].strip(), S[2].strip()]]
             DSTInfo[Year] = Days
     return DSTInfo
 
@@ -369,56 +382,61 @@ def dstStatus(dt, DSTInfo):
 
 def syncTimeNTP(ser, userConfig, msgFileN=None):
     """
-    Function to sync Teensy date/time with Network Time Protocol (NTP)
+    Function to sync Teensy date/time from RPi system clock.
+    The RPi clock is expected to be NTP-synced by syncRPiTime().
     """
 
-    # Find time offset between current and UTC time zone in sec
-    TimeDiffUTC = -time.timezone
-
-    # Apply Daylight Saving
-    # DSTInfo = getDSTInfo('DST.dat')
-    # if dstStatus(datetime.datetime.now(), DSTInfo):
-    #    TimeDiffUTC += 3600
-
-    # Get the time from NTPServer
+    # Use local RPi clock (already NTP-synced at startup) to avoid network
+    # latency/jitter on every periodic Teensy resync.
     try:
-        client = ntplib.NTPClient()
-        response = client.request(userConfig["NTPServer"], timeout=5)
-        timeT = "T" + str(response.tx_time + TimeDiffUTC)
+        utc_epoch_ms = int(time.time() * 1000)
+        tz_offset = datetime.datetime.now().astimezone().utcoffset()
+        offset_ms = int(tz_offset.total_seconds() * 1000) if tz_offset else 0
+
+        # Preserve legacy behavior where Teensy clock tracks local wall time.
+        epoch_ms = utc_epoch_ms + offset_ms
+        epoch_s = epoch_ms // 1000
+
+        # Legacy seconds sync (for backward compatibility).
+        timeT = "T" + str(epoch_s) + "\n"
         try:
             ser.write(timeT.encode("ascii", "ignore"))
         except Exception:
             ser.write(timeT)  # fallback
+
+        # High-resolution sync used by updated firmware.
+        timeM = "M" + str(epoch_ms) + "\n"
+        try:
+            ser.write(timeM.encode("ascii", "ignore"))
+        except Exception:
+            ser.write(timeM)  # fallback
+
         if msgFileN:
             msgList = [
                 "Info: syncTimeNTP",
                 "RPi Time: " + getTimeFormat(),
-                "NTP Time: " + timeT.replace("T", ""),
-                "NTP to Local: "
-                + time.strftime(
-                    "%Y-%m-%d %H:%M:%S", time.localtime(float(response.tx_time))
-                ),
+                "RPi Local Offset (ms): " + str(offset_ms),
+                "RPi Epoch Seconds Sent: " + str(epoch_s),
+                "RPi Epoch Milliseconds Sent: " + str(epoch_ms),
             ]
             writeLogFile(msgFileN, msgList)
         else:
-            print("   ... Teensy date and time synced with " + userConfig["NTPServer"])
+            print("   ... Teensy date and time synced from RPi system clock")
 
     except Exception as e:
         if msgFileN:
             msgList = [
                 "Error:",
                 "EXCEPTION HAPPENED.",
-                "The program could not sync Teensy time with NTP time server.",
-                "Check the internet connection and re-run the program.",
+                "The program could not sync Teensy time from RPi clock.",
+                "Check serial connection and re-run the program.",
                 "Error : %s: %s \n" % (e.__class__, e),
             ]
             writeLogFile(msgFileN, msgList)
         else:
             print("   ... * EXCEPTION HAPPENED.")
-            print(
-                "   ... * The program could not sync Teensy time with NTP time server."
-            )
-            print("   ... * Check the internet connection and re-run the program.")
+            print("   ... * The program could not sync Teensy time from RPi clock.")
+            print("   ... * Check serial connection and re-run the program.")
             print("   ... * Error : %s: %s \n" % (e.__class__, e))
             exitInst.exitStatus = True
             return
@@ -434,10 +452,21 @@ def sendEmail(errorMessage, userConfig, msgFileN, emailSubject=None):
         recipientEmail = userConfig["Email"]
         emailUser = userConfig["WD_Email"]
 
-        tmpCred = userConfig["WD_Pass"].split("|||")
-        for i in range(int(tmpCred[0])):
-            tmpCred[1] = base64.b64decode(tmpCred[1])
-        emailPass = tmpCred[1]
+        raw_pass = userConfig.get("WD_Pass", "")
+        parts = raw_pass.split("|||") if raw_pass else []
+        rounds = int(parts[0]) if parts and parts[0].isdigit() else 1
+        secret = parts[1] if len(parts) > 1 else ""
+        for _ in range(max(1, rounds)):
+            try:
+                secret = base64.b64decode(secret)
+            except Exception:
+                break
+        # smtplib expects str; decode any bytes returned by base64
+        emailPass = (
+            secret.decode("utf-8")
+            if isinstance(secret, (bytes, bytearray))
+            else str(secret)
+        )
 
         ipAddress = netifaces.ifaddresses("eth0")[netifaces.AF_INET][0]["addr"]
 
@@ -619,21 +648,42 @@ def changeOutputFileN(D, FN, Dic):
     return [D, FN]
 
 
+_gpio_request = None  # module-level gpiod line request for cleanup
+
+
 def setupGPIO(userConfig):
     """
-    Function to setup GPIO.
+    Function to setup GPIO using gpiod (Pi 5 compatible).
     """
+
+    global _gpio_request
 
     # Keep Teensy Reset & Program pins HIGH
     if "GPIO_Pin_Type" in userConfig:
-        print("   ... Writing GPIO.HIGH to Teensy reset and program pins")
+        print("   ... Writing HIGH to Teensy reset and program pins")
         teensyProgPin = int(userConfig["Program_Pin"])
-        if userConfig["GPIO_Pin_Type"].lower() == "bcm":
-            GPIO.setmode(GPIO.BCM)
-        elif userConfig["GPIO_Pin_Type"].lower() == "board":
-            GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(teensyProgPin, GPIO.OUT)
-        GPIO.output(teensyProgPin, GPIO.HIGH)
+        _gpio_request = gpiod.request_lines(
+            "/dev/gpiochip4",
+            consumer="maincode-gpio",
+            config={
+                teensyProgPin: LineSettings(
+                    direction=Direction.OUTPUT,
+                    output_value=Value.ACTIVE,
+                ),
+            },
+        )
+
+
+def cleanupGPIO():
+    """Release gpiod resources."""
+
+    global _gpio_request
+    if _gpio_request is not None:
+        try:
+            _gpio_request.release()
+        except Exception:
+            pass
+        _gpio_request = None
 
 
 def includeSMHeader(srcF, destF):
@@ -1045,6 +1095,28 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                     if needHeaderNew:
                         with open(trialSummaryFileN, "a") as tsf_init:
                             tsf_init.write(TRIAL_SUMMARY_HEADER)
+                    else:
+                        # Diagnostic: rotated .trial.csv files sometimes end up
+                        # with no header, which makes a reader take their first
+                        # trial row as the column names. Record what the size
+                        # check actually saw, and the file we rotated away from,
+                        # so a collision can be told apart from a stale stat.
+                        # Never raise: this runs inside the acquisition loop.
+                        try:
+                            writeLogFile(
+                                msgFileN,
+                                [
+                                    "Warning:",
+                                    "       Skipped header for rotated trial file.",
+                                    "       new : {} ({} bytes)".format(
+                                        trialSummaryFileN,
+                                        os.path.getsize(trialSummaryFileN),
+                                    ),
+                                    "       prev: {}".format(prevTrial),
+                                ],
+                            )
+                        except Exception:
+                            pass
 
             # Check exit signal
             if exitInst.exitStatus:
@@ -1257,7 +1329,7 @@ def main():
     ser.close()
     if analogEnabled:
         anSer.close()
-    GPIO.cleanup()
+    cleanupGPIO()
 
     # Trigger transfer/backup pipeline after every run
 

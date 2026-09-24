@@ -1,4 +1,29 @@
+
 > "An animal's eyes have the power to speak a great language." ~Martin Buber
+
+## System Overview
+
+AutoTrainer Modular coordinates behavioral training runs on each Raspberry Pi (“Pi”) and keeps experiment data synchronized with the lab NAS.
+
+- `MainCode.py` compiles/uploads Teensy firmware, runs the training loop, logs session data, and rotates daily output files when configured.
+- `PiCamMain.py` records activity-triggered video and stores footage under each subject’s output directory.
+- `RemoteJobSubmission.py` deploys updated code to the Pi, creating a timestamped backup of the current codebase before every upload.
+- `convertAndTransfer.py` mounts the NAS, converts video when required, transfers completed session artifacts, offloads older Pi backups, and prunes local files based on retention settings.
+
+### Directory Layout on Pi
+
+- `Output_Dir/<Subject_Name>/` (default `/home/pi/ExpData/<Subject>/`)
+  - Session data files (`*.dat`, `.trial.csv`, `.log`, rotation markers).
+  - `Video/` — per-session video recordings plus associated `*.events` / `*.frames` folders.
+- `/home/pi/ATM_backups/<Subject_Name>/<Project>-<timestamp>/` — code snapshots captured before each remote deployment. `convertAndTransfer.py` archives older backups to the NAS once newer ones exist.
+
+### Directory Layout on NAS (mounted at `Mountpoint`)
+
+- `<Mountpoint>/<Subject_Name>/raw_data/`
+  - Non-video session files copied from the Pi.
+  - `videos/` — converted `*.mp4` files and any `events` / `frames` subdirectories.
+- `<Mountpoint>/<Subject_Name>/ATM_backups/<Project>-<timestamp>/`
+  - Long-term copies of the Pi’s code backups. The automation only adds to this tree; nothing is deleted from the NAS automatically.
 
 Table of Contents
 =================

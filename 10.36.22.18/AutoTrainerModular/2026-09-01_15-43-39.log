@@ -1,0 +1,17 @@
+2026-09-01 15:43:39,507 > main: START @ Tue Sep  1 15:43:39 2026
+
+2026-09-01 15:43:39,507 > main:
+userInfo:
+{'RPi_IP': '10.36.22.18', 'Experiment_Name': 'Nosepoke2port', 'Box_Name': 'F06', 'Subject_Name': 'BGM9', 'Daily_Water': '2000', 'Water_Minimum': '75%', 'TimeSyncFreq': '1HR', 'Daily_Dat_File': '13:00', 'Analog': 'False', 'Before_Buffer': '1000', 'Get_Exp_Result': 'False', 'Result_Path': '', 'Remote_File_Exts': '*.dat, *.log', 'Get_Analog_Results': 'False', 'Delete_Old_Results': 'False', 'Output_Name_Freq': '24HR', 'Output_Dir': '/home/pi/ExpData', 'Zip_On_Rotate': 'False', 'Transfer_Enabled': 'True', 'Raw_Data_Mode': 'True', 'Daily_Time': '13:00', 'Look_In_Paths': '/home/pi/ExpData/BGM9', 'File_Exts': 'dat, log, mp4, events, frames, h264, csv', 'Specific_Dests': 'True', 'Delete_Moved': 'True', 'Keep_Latest': 'True', 'Skip_Latest': 'True', 'Nas_Ip': '10.36.22.120', 'Nas_Creds': '/home/pi/.smbcredentials', 'Destination_In_Fs': 'bapun.giri/Bandit2ArmData/', 'Mountpoint': '/home/pi/NASMount/', 'Remount': 'True', 'Logs_Dir': '', 'Kill_OpCon': 'False', 'Reset_Teensy_Build': 'True', 'Delete_Kill_All': 'False', 'Serial_TimeOut': '3900', 'Run_Camera': 'True', 'Kill_Camera': 'False', 'Kill_Transfer': 'False', 'Use_Setup_Gain': 'True', 'Setup_Gain_Path': '/home/pi/OpConPiCamera/Video', 'Camera_1': '[10.36.22.18 ; camInfoM.in]', 'Gain_1': 'False', 'Run_Microphone': 'False', 'Microphone_RPi_IP': '140.247.178.60', 'Audio_Setting_File': 'audioInfo.in', 'Kill_Microphone': 'False', 'Rsync_OpCon': 'True', 'Storage_Dir': '', 'Rsync_Freq_Sec': '300', 'Add_Experiment_Dir': 'Box', 'Exclude_Exts': '*.pyc; *.in.gz', 'Storage_Root': '', 'Storage_Host': '', 'Name': 'Bapun', 'Email': 'bapunk@iisc.ac.in', 'Enable_Email': 'True', 'Reset_Pin': '13', 'Program_Pin': '19', 'GPIO_Pin_Type': 'BCM', 'NTPServer': 'ntp.iisc.ac.in', 'Cred_File': 'cred.in.gz', 'RPi_ID': 'pi', 'RPi_Pass': 'Dlabrpi!', 'WD_Email': 'dhawalelabrpi@gmail.com', 'WD_Pass': '2|||Y1hOMVpIZG9hMlZ4YTNscGJHcHdjQT09', 'WD_SMTP': 'smtp.gmail.com', 'WD_SMTP_Port': '465', 'WD_SSL': 'True'}
+
+camInfo:
+{'RPi_IP': '10.36.22.18', 'Camera_Type': 'Master', 'Recording_Mode': 'B', 'WebCam_Preview': 'True', 'Camera_Resolution': '(640, 360)', 'Camera_FPS': '90', 'Camera_Rotation': '180', 'Camera_Bitrate': '2000000', 'Camera_Pin': '26', 'Camera_Format': 'h264', 'Stream_Port': '9000', 'Record_Schedule': 'T', 'Record_Start': '[( 19, 0), (23, 0), (3,  0)]', 'Record_Stop': '[( 19, 40), (23,  40), (3, 40)]', 'Teensy_Alarm_File': 'SetInitialAlarms.h', 'Transfer_Schedule': 'T', 'Transfer_Start': '[( 11, 35)]', 'Transfer_Stop': '[(18, 0)]', 'Convert_Video': 'False', 'Output_Format': 'mp4', 'Output_Size': 'C', 'Storage_Video_Dir': '', 'Protocol': 'rsync', 'Transfer_Ext': '*.frames; *.events', 'Log_File_Dir': '/home/pi/rsynclog.txt', 'Storage_Root': '', 'Storage_Host': '192.168.1.7'}
+
+2026-09-01 15:43:39,576 > mountFs: FAILED to mount NAS:
+sudo mount -t cifs //10.36.22.120/bapun.giri/Bandit2ArmData/ /home/pi/NASMount/ -o credentials=/home/pi/.smbcredentials,uid=pi,gid=pi,file_mode=0664,dir_mode=0775
+
+2026-09-01 15:43:39,576 > findAllFiles: found files:
+[]
+
+2026-09-01 15:43:39,576 > main: no files found for transfer
+

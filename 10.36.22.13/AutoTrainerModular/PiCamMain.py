@@ -19,7 +19,19 @@ from http import server as server  # Http server
 import glob  # File pattern search
 import signal  # Exit signal detection
 import re  # Regular expression module
+from urllib.parse import urlparse  # URL helper
 import StorageMonitor  # Background disk usage monitor
+
+SCHEDULE_LEAD_SEC = 600  # seconds before schedule to power on camera
+SCHEDULE_LAG_SEC = 600  # seconds after schedule to keep camera on
+
+manual_override = False
+state_lock = threading.Lock()
+controller_status = {"camera_running": False}
+schedule_cache = {"start_sec": [], "stop_sec": [], "start": [], "stop": []}
+piCamWebOutput = None
+piCamStreamServer = None
+streamingThread = None
 
 
 def getTimeFormat(withTime=False, dash=False):
@@ -54,6 +66,118 @@ def getUserConfig(fileName, splitterChar):
                 settingValue = settingValue.strip()
                 userConfig[settingName] = settingValue
     return userConfig
+
+
+def set_manual_override(state):
+    """Set manual camera override flag."""
+
+    global manual_override
+    with state_lock:
+        manual_override = bool(state)
+
+
+def get_manual_override():
+    """Return manual override flag."""
+
+    with state_lock:
+        return manual_override
+
+
+def set_camera_running(state):
+    """Track camera running status."""
+
+    with state_lock:
+        controller_status["camera_running"] = bool(state)
+
+
+def is_camera_running():
+    """Return camera running status."""
+
+    with state_lock:
+        return controller_status.get("camera_running", False)
+
+
+def load_schedule(camera_config, alarm_file):
+    """Return record start/stop lists and seconds since midnight."""
+
+    rec_opt = str(camera_config.get("Record_Schedule", "")).lower()
+    record_start = []
+    record_stop = []
+
+    if rec_opt == "u":
+        try:
+            record_start = list(eval(camera_config.get("Record_Start", "[]")))
+            record_stop = list(eval(camera_config.get("Record_Stop", "[]")))
+        except Exception:
+            logging.debug("Failed to parse user schedule; defaulting to empty.")
+            record_start, record_stop = [], []
+    elif rec_opt == "t":
+        try:
+            F = open(alarm_file, "r").readlines()
+        except IOError:
+            logging.debug("* Alarm schedule file not found for schedule load.")
+            return record_start, record_stop, [], []
+
+        st, sp = (list(), list())
+        for i, L in enumerate(F):
+            if (
+                ("Training" in L)
+                and ("SetDailyAlarms" in L)
+                and (L.strip()[0:2] != "//")
+                and (L.strip()[0:1] != "/")
+            ):
+                st.append(L)
+                sp.append(F[i + 1])
+
+        for i in range(len(st)):
+            t1 = tuple(
+                map(int, (st[i][st[i].find("(") + 1 : st[i].find(")")]).split(",")[:2])
+            )
+            t2 = tuple(
+                map(int, (sp[i][sp[i].find("(") + 1 : sp[i].find(")")]).split(",")[:2])
+            )
+            record_start.append(t1)
+            record_stop.append(t2)
+
+    start_sec = [i[0] * 3600 + i[1] * 60 for i in record_start]
+    stop_sec = [i[0] * 3600 + i[1] * 60 for i in record_stop]
+    return record_start, record_stop, start_sec, stop_sec
+
+
+def is_time_in_schedule(now, start_sec, stop_sec, lead=0, lag=0):
+    """Return True if now (seconds) is within schedule ± margins."""
+
+    if not start_sec or not stop_sec:
+        return False
+
+    now = now % 86400
+    for start, stop in zip(start_sec, stop_sec):
+        if stop == start:
+            continue
+        diff = stop - start
+        sig = int((1 - diff / abs(diff)) / 2)
+        adj_now = now
+        if sig and adj_now < start and adj_now < stop:
+            adj_now = adj_now + 24 * 3600
+        start_adj = start - lead
+        stop_adj = stop + lag + 24 * 3600 * sig
+        if adj_now >= start_adj and adj_now < stop_adj:
+            return True
+    return False
+
+
+def schedule_active_with_margin(now=None):
+    """Helper to check schedule status with configured margins."""
+
+    if now is None:
+        now = time.time()
+    return is_time_in_schedule(
+        now,
+        schedule_cache["start_sec"],
+        schedule_cache["stop_sec"],
+        SCHEDULE_LEAD_SEC,
+        SCHEDULE_LAG_SEC,
+    )
 
 
 def resolve_subject_output_dir(user_config):
@@ -156,6 +280,12 @@ def generateHTML(resolution, ip):
     except Exception:
         storage_display = "N/A"
 
+    override_state = "ON" if get_manual_override() else "OFF"
+    camera_state = "ON" if is_camera_running() else "OFF"
+    schedule_state = "ACTIVE" if schedule_active_with_margin() else "INACTIVE"
+    button_target = "/camera/off" if get_manual_override() else "/camera/on"
+    button_label = "Camera Off" if get_manual_override() else "Camera On"
+
     PAGE = """\
     <html>
     <head>
@@ -180,6 +310,8 @@ def generateHTML(resolution, ip):
                 <td align="center"><font color="000FF">%s</font></td>
       </tr>
     </table>
+    <p>Camera Status: <b>%s</b> | Schedule (±10 min): <b>%s</b> | Manual Override: <b>%s</b></p>
+    <form action="%s" method="get"><input type="submit" value="%s"></form>
     <p><img src="stream.mjpg" width="%d" height="%d" /></p>
     </body>
     </html>
@@ -192,6 +324,11 @@ def generateHTML(resolution, ip):
         userConfig["Box_Name"],
         userConfig["Subject_Name"],
         storage_display,
+        camera_state,
+        schedule_state,
+        override_state,
+        button_target,
+        button_label,
         resolution[1],
         resolution[0],
     )
@@ -222,6 +359,8 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
     """Streaming handler object."""
 
     def get_frame(self):
+        if piCamWebOutput is None or not is_camera_running():
+            raise RuntimeError("Camera not streaming")
         with piCamWebOutput.condition:
             piCamWebOutput.condition.wait()
             frame = piCamWebOutput.frame
@@ -230,12 +369,70 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
     def get_page(self):
         return generateHTML([360, 640], getIP())
 
+    PATH_SUFFIXES = (
+        "/status",
+        "/off",
+        "/on",
+        "/stream.mjpg",
+        "/index.html",
+    )
+
+    def _build_index_redirect(self, base):
+        if base and not base.endswith("/"):
+            return base + "/index.html"
+        return "/index.html"
+
+    def _split_base_suffix(self):
+        parsed_url = urlparse(self.path)
+        normalized_path = parsed_url.path or "/"
+        if normalized_path != "/" and normalized_path.endswith("/"):
+            normalized_path = normalized_path.rstrip("/")
+        base = ""
+        prefix = "/camera"
+        core_path = normalized_path
+        if normalized_path == prefix or normalized_path.startswith(prefix + "/"):
+            base = prefix
+            core_path = normalized_path[len(prefix) :]
+            if not core_path:
+                core_path = "/"
+        if not core_path:
+            core_path = "/"
+        if core_path != "/" and not core_path.startswith("/"):
+            core_path = "/" + core_path
+
+        if core_path == "/":
+            return base, "/"
+
+        for suffix in self.PATH_SUFFIXES:
+            if core_path == suffix:
+                return base, suffix
+        return normalized_path, None
+
     def do_GET(self):
-        if self.path == "/":
-            self.send_response(301)
-            self.send_header("Location", "/index.html")
+        base, suffix = self._split_base_suffix()
+        if suffix is None:
+            # Quietly handle favicon to avoid noisy 404s in the log
+            if self.path.endswith("/favicon.ico"):
+                self.send_response(204)
+                self.end_headers()
+                return
+            # If we're under /camera but hit an unknown child, send the user back home
+            if base == "/camera":
+                self.send_response(302)
+                self.send_header("Location", self._build_index_redirect(base))
+                self.end_headers()
+                return
+            self.send_error(404)
             self.end_headers()
-        elif self.path == "/index.html":
+            return
+
+        if suffix == "/":
+            self.send_response(301)
+            self.send_header("Location", self._build_index_redirect(base))
+            self.end_headers()
+            return
+
+        if suffix == "/index.html":
             PAGE = self.get_page()
             content = PAGE.encode("utf-8")
             self.send_response(200)
@@ -243,7 +440,41 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", len(content))
             self.end_headers()
             self.wfile.write(content)
-        elif self.path == "/stream.mjpg":
+            return
+
+        if suffix == "/on":
+            set_manual_override(True)
+            self.send_response(302)
+            self.send_header("Location", self._build_index_redirect(base))
+            self.end_headers()
+            return
+
+        if suffix == "/off":
+            set_manual_override(False)
+            self.send_response(302)
+            self.send_header("Location", self._build_index_redirect(base))
+            self.end_headers()
+            return
+
+        if suffix == "/status":
+            status = {
+                "manual_override": get_manual_override(),
+                "camera_running": is_camera_running(),
+                "schedule_active": schedule_active_with_margin(),
+            }
+            payload = str(status).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", len(payload))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
+        if suffix == "/stream.mjpg":
+            if piCamWebOutput is None or not is_camera_running():
+                self.send_error(503, "Camera not streaming")
+                self.end_headers()
+                return
             self.send_response(200)
             self.send_header("Age", 0)
             self.send_header("Cache-Control", "no-cache, private")
@@ -265,9 +496,10 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
                 logging.warning(
                     "Removed streaming client %s: %s", self.client_address, str(e)
                 )
-        else:
-            self.send_error(404)
-            self.end_headers()
+            return
+
+        self.send_error(404)
+        self.end_headers()
 
 
 class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
@@ -446,6 +678,7 @@ class PiCameraObject(object):
         self.format = format
         self.gainTime = 0
         self.gainThreadRunning = False
+        self.stopRequested = False
         signal.signal(signal.SIGHUP, self.signalReceived)
 
         self.recordStart = None
@@ -940,6 +1173,11 @@ class PiCameraObject(object):
 
         self.gainEvent.set()
 
+    def request_stop(self):
+        """Request cooperative stop of camera loops."""
+
+        self.stopRequested = True
+
     def initiateCamera(self):
         """Initiates camera for recording."""
 
@@ -969,6 +1207,8 @@ class PiCameraObject(object):
     def startWebPreview(self):
         """Starting Pi Camera web preview"""
 
+        if not hasattr(self, "previewEvent"):
+            self.previewEvent = threading.Event()
         self.camera.start_recording(piCamWebOutput, format="mjpeg", splitter_port=2)
         self.previewEvent.set()
 
@@ -977,9 +1217,12 @@ class PiCameraObject(object):
         It clears thread, shutdowns streaming server, and stops camera on port 2
         """
 
-        self.previewEvent.clear()
-        piCamStreamServer.shutdown()
-        self.camera.stop_recording(splitter_port=2)
+        if hasattr(self, "previewEvent"):
+            self.previewEvent.clear()
+        try:
+            self.camera.stop_recording(splitter_port=2)
+        except Exception:
+            pass
 
     def setWebCamThread(self):
         """Set web preview thread
@@ -1025,8 +1268,14 @@ class PiCameraObject(object):
 
             while True:
 
+                if self.stopRequested:
+                    raise Exception("StopRequested")
+
                 # wait until queue is populated
                 while self.GPIOqueue.empty():
+
+                    if self.stopRequested:
+                        raise Exception("StopRequested")
 
                     # stop and close video if time elapses
                     if (
@@ -1168,8 +1417,14 @@ class PiCameraObject(object):
                 logging.debug("Waiting for alarm ...")
             while True:
 
+                if self.stopRequested:
+                    raise Exception("StopRequested")
+
                 # Wait until queue is populated
                 while self.GPIOqueue.empty():
+
+                    if self.stopRequested:
+                        raise Exception("StopRequested")
 
                     startFlag = not self.recordingStatus and self.checkTime()
                     stopFlag = self.recordingStatus and not self.checkTime()
@@ -1336,6 +1591,19 @@ if __name__ == "__main__":
     userConfig = getUserConfig("userInfo.in", "=")
     cameraConfig = getUserConfig(args.file, "=")
 
+    # Build schedule cache once
+    rec_start, rec_stop, start_sec, stop_sec = load_schedule(
+        cameraConfig, "SetInitialAlarms.h"
+    )
+    schedule_cache.update(
+        {
+            "start": rec_start,
+            "stop": rec_stop,
+            "start_sec": start_sec,
+            "stop_sec": stop_sec,
+        }
+    )
+
     logging.debug(
         "Picamera code started on ["
         + cameraConfig["Camera_Type"]
@@ -1346,92 +1614,133 @@ if __name__ == "__main__":
         + getTimeFormat(withTime=True, dash=True)
     )
 
-    # Initialize pi camera object
-    cam1 = PiCameraObject(
-        camType=cameraConfig["Camera_Type"],
-        resolution=eval(cameraConfig["Camera_Resolution"]),
-        framerate=int(cameraConfig["Camera_FPS"]),
-        rotation=int(cameraConfig["Camera_Rotation"]),
-        bitrate=int(cameraConfig["Camera_Bitrate"]),
-        camPin=int(cameraConfig["Camera_Pin"]),
-        splitter_port=1,
-        format=cameraConfig["Camera_Format"],
-    )
-
-    cam1.setRecordSched(cameraConfig, "SetInitialAlarms.h")
-
-    # Set video local storage
+    # Set video local storage path in config
     subject_output_dir = resolve_subject_output_dir(userConfig)
     video_dir = os.path.join(subject_output_dir, "Video")
     cameraConfig["RPi_Video_Dir"] = video_dir
-    cam1.setStorage(video_dir)
 
-    # IMPORTANT: any change to fps, rotation, bitrate: first stop camera, start it again
-    #                (ShSp, ISO, WG1,   WG2,   AnG,   DiG,   Rot, FPS, BRate)
-    # cam1.setGainsParam(3972, 800, 2.223, 0.965, 9.848, 1.414, 0, 90, 3.0)
-
-    # Set initial gain
-    cam1.loadGainsFile()
-
-    # Create Pi camera streaming output object, and streaming web server object
+    # Start streaming server (available even when camera is off)
     if cameraConfig["WebCam_Preview"].lower() == "true":
         logging.debug(
-            "Picamera web preview started on: "
+            "Picamera web preview server starting on: "
             + cameraConfig["RPi_IP"]
             + ":"
             + cameraConfig["Stream_Port"]
         )
-        piCamWebOutput = StreamingOutput()
+        if piCamWebOutput is None:
+            piCamWebOutput = StreamingOutput()
         streamingPort = ("", int(cameraConfig["Stream_Port"]))
         piCamStreamServer = StreamingServer(streamingPort, StreamingHandler)
-        cam1.setWebCamThread()
-        cam1.startWebPreview()
+        streamingThread = threading.Thread(
+            name="CameraWebServer",
+            target=piCamStreamServer.serve_forever,
+        )
+        streamingThread.daemon = True
+        streamingThread.start()
 
-    # Set camera gain thread [Needs modification in Teensy code and MainCode]
-    # ... As soon as a new gain file is located in GainSettings/ folder,
-    # ... the code adjusts camera gains
-    cam1.setGainThread()
+    # Start background storage monitor (prefer checking video dir if available)
+    try:
+        check_path = cameraConfig.get("RPi_Video_Dir", "/")
+        threshold_pct = float(userConfig.get("Storage_Fill_Threshold", 85))
+        interval_sec = int(userConfig.get("Storage_Check_Interval_Sec", 600))
+        cooldown_sec = int(userConfig.get("Storage_Notify_Cooldown_Sec", 86400))
+        StorageMonitor.start_storage_monitor(
+            user_config=userConfig,
+            check_path=check_path,
+            threshold_pct=threshold_pct,
+            interval_sec=interval_sec,
+            cooldown_sec=cooldown_sec,
+            state_file="/tmp/atmod_storage_alert_cam.json",
+        )
+        logging.debug(
+            "Storage monitor started (path=%s, threshold=%.1f%%, interval=%ds)",
+            check_path,
+            threshold_pct,
+            interval_sec,
+        )
+    except Exception as _e:
+        logging.debug("Storage monitor failed to start: %s", _e)
 
-    # Start camera recording based on user preference
-    if not exitInst.exitStatus:
-        # Start background storage monitor (prefer checking video dir if available)
-        try:
-            check_path = cameraConfig.get("RPi_Video_Dir", "/")
-            threshold_pct = float(userConfig.get("Storage_Fill_Threshold", 85))
-            interval_sec = int(userConfig.get("Storage_Check_Interval_Sec", 600))
-            cooldown_sec = int(userConfig.get("Storage_Notify_Cooldown_Sec", 86400))
-            StorageMonitor.start_storage_monitor(
-                user_config=userConfig,
-                check_path=check_path,
-                threshold_pct=threshold_pct,
-                interval_sec=interval_sec,
-                cooldown_sec=cooldown_sec,
-                state_file="/tmp/atmod_storage_alert_cam.json",
-            )
-            logging.debug(
-                "Storage monitor started (path=%s, threshold=%.1f%%, interval=%ds)",
-                check_path,
-                threshold_pct,
-                interval_sec,
-            )
-        except Exception as _e:
-            logging.debug("Storage monitor failed to start: %s", _e)
+    cam1 = None
+    camThread = None
 
+    def start_camera():
+        """Start camera session if not already running."""
+
+        global cam1, camThread
+        if camThread is not None:
+            return
+
+        cam1 = PiCameraObject(
+            camType=cameraConfig["Camera_Type"],
+            resolution=eval(cameraConfig["Camera_Resolution"]),
+            framerate=int(cameraConfig["Camera_FPS"]),
+            rotation=int(cameraConfig["Camera_Rotation"]),
+            bitrate=int(cameraConfig["Camera_Bitrate"]),
+            camPin=int(cameraConfig["Camera_Pin"]),
+            splitter_port=1,
+            format=cameraConfig["Camera_Format"],
+        )
+
+        cam1.setRecordSched(cameraConfig, "SetInitialAlarms.h")
         if cameraConfig["Recording_Mode"].lower() == "b":
-            logging.debug("Recording in circular buffer mode.")
             cam1.setBuffer(
                 preEventSaveTime=2,
                 initialWaitTime=10,
                 inactivityTime=2,
                 circularBufferSize=60,
             )
-            cam1.recordCircular()
-        elif cameraConfig["Recording_Mode"].lower() == "c":
+        cam1.recordSchedule()
+        cam1.setStorage(video_dir)
+        cam1.loadGainsFile()
+
+        if cameraConfig["WebCam_Preview"].lower() == "true":
+            cam1.startWebPreview()
+
+        cam1.setGainThread()
+
+        if cameraConfig["Recording_Mode"].lower() == "b":
+            logging.debug("Recording in circular buffer mode.")
+            target = cam1.recordCircular
+        else:
             logging.debug("Recording in continuous mode.")
-            cam1.recordContinuous()
+            target = cam1.recordContinuous
+
+        camThread = threading.Thread(name="CameraRecord", target=target)
+        camThread.daemon = True
+        camThread.start()
+        set_camera_running(True)
+
+    def stop_camera():
+        """Stop camera session if running."""
+
+        global cam1, camThread
+        if cam1:
+            cam1.request_stop()
+        if camThread:
+            camThread.join(timeout=15)
+        cam1 = None
+        camThread = None
+        set_camera_running(False)
 
     try:
         while not exitInst.exitStatus:
-            time.sleep(0.5)
+            desired_on = get_manual_override() or schedule_active_with_margin()
+            if desired_on and camThread is None:
+                start_camera()
+            elif (not desired_on) and camThread is not None:
+                stop_camera()
+            elif camThread is not None and not camThread.is_alive():
+                cam1 = None
+                camThread = None
+                set_camera_running(False)
+            time.sleep(1)
     except KeyboardInterrupt:
         logging.debug("Program ended.")
+    finally:
+        stop_camera()
+        try:
+            if piCamStreamServer:
+                piCamStreamServer.shutdown()
+        except Exception:
+            pass

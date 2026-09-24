@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# Nested clone of this same tree (an older snapshot), not a rig directory.
+/OpConATMs/
