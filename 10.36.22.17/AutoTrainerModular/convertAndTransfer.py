@@ -3,14 +3,24 @@
 from __future__ import print_function
 
 import datetime
+import gzip
 import logging
 import os
+import re
 import subprocess
 import time
 
 
 ATM_BACKUP_ROOT = "/home/pi/ATM_backups"
 ATM_BACKUP_ROOT_LEGACY = "/home/pi/ATM_Backups"
+
+# Run logs live outside the code folder so the ATM_backups snapshots that
+# go to the NAS never carry them, and outside Output_Dir so the transfer
+# never mistakes them for data.
+LOG_DIR_DEFAULT = "/home/pi/ATM_transfer_logs"
+LOG_KEEP_DEFAULT = 14
+RUN_LOG_RE = re.compile(r"^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.log(\.gz)?$")
+SECRET_HINTS = ("pass", "cred", "secret", "token")
 
 
 def getUserConfig(fileName, splitterChar):
@@ -546,25 +556,101 @@ def transferRawMode(
     return moved
 
 
+def redactConfig(config):
+    """Return a copy of 'config' with credential values masked.
+
+    The run log stays on the Pi and is worth keeping, which it only is
+    if the raw config dict never reaches it.
+    """
+
+    return dict(
+        (key, "<redacted>" if any(h in key.lower() for h in SECRET_HINTS) else value)
+        for key, value in config.items()
+    )
+
+
+def pruneLogs(logDir, keep):
+    """Compress finished run logs and keep only the newest 'keep'.
+
+    Called before this run opens its own log, so every file matched here
+    belongs to an earlier run. Only the dated run-log names are touched:
+    an animal's <Subject>-<timestamp>.log sitting in the same directory
+    is never a candidate.
+
+    The logs are plain text and compress by about an order of magnitude,
+    which is what makes a fortnight of history affordable on the card.
+    """
+
+    try:
+        names = sorted(f for f in os.listdir(logDir) if RUN_LOG_RE.match(f))
+    except OSError:
+        return
+
+    # Leave room for the log this run is about to open.
+    surplus = max(len(names) - max(keep - 1, 0), 0)
+    for name in names[:surplus]:
+        try:
+            os.remove(os.path.join(logDir, name))
+        except OSError:
+            pass
+
+    for name in names[surplus:]:
+        if name.endswith(".gz"):
+            continue
+        path = os.path.join(logDir, name)
+        try:
+            with open(path, "rb") as src, gzip.open(path + ".gz", "wb") as dst:
+                dst.writelines(src)
+            os.remove(path)
+        except (OSError, IOError):
+            pass
+
+
+def setupLogging(userInfo):
+    """Open this run's log under Logs_Dir and trim the older ones.
+
+    Returns the path opened, so the run can record where it went.
+    """
+
+    logDir = userInfo.get("Logs_Dir", "").strip() or LOG_DIR_DEFAULT
+    try:
+        os.makedirs(logDir, exist_ok=True)
+    except OSError:
+        # Logging must never be the reason a transfer does not run.
+        logDir = "."
+
+    try:
+        keep = int(userInfo.get("Logs_Keep", "").strip() or LOG_KEEP_DEFAULT)
+    except ValueError:
+        keep = LOG_KEEP_DEFAULT
+
+    pruneLogs(logDir, keep)
+
+    dateTime = (
+        str(datetime.datetime.now().date())
+        + "_"
+        + str(datetime.datetime.now().time())[:-7]
+    ).replace(":", "-")
+    logPath = os.path.join(logDir, "%s.log" % dateTime)
+    logging.basicConfig(filename=logPath, format="%(asctime)s > %(message)s\n")
+    return logPath
+
+
 def main():
     # read config files
     userInfo = getUserConfig("userInfo.in", "=")
     camInfo = getUserConfig("camInfoM.in", "=")
 
     # initialise log file
-    dateTime = (
-        str(datetime.datetime.now().date())
-        + "_"
-        + str(datetime.datetime.now().time())[:-7]
-    ).replace(":", "-")
-    logging.basicConfig(
-        filename="%s.log" % os.path.join(userInfo["Logs_Dir"], dateTime),
-        format="%(asctime)s > %(message)s\n",
-    )
+    logPath = setupLogging(userInfo)
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     logPrint("main: START @ %s" % time.ctime())
-    logPrint("main:\nuserInfo:\n%s\n\ncamInfo:\n%s" % (userInfo, camInfo))
+    logPrint("main: run log %s" % logPath)
+    logPrint(
+        "main:\nuserInfo:\n%s\n\ncamInfo:\n%s"
+        % (redactConfig(userInfo), redactConfig(camInfo))
+    )
 
     exts = [
         ext.strip().lower() for ext in userInfo["File_Exts"].split(",") if ext.strip()
