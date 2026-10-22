@@ -8,3 +8,6 @@ __pycache__/
 # fallback). Tracking it meant every deploy pushed a stale copy over
 # the rig's own record.
 log.out
+
+# Per-rig output of deploy_all.py, written locally on every deploy.
+/deploy_logs/
