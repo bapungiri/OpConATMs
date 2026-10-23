@@ -22,10 +22,6 @@ import re  # Regular expression module
 from urllib.parse import urlparse  # URL helper
 import StorageMonitor  # Background disk usage monitor
 
-SCHEDULE_LEAD_SEC = 600  # seconds before schedule to power on camera
-SCHEDULE_LAG_SEC = 600  # seconds after schedule to keep camera on
-
-manual_override = False
 state_lock = threading.Lock()
 controller_status = {"camera_running": False}
 schedule_cache = {"start_sec": [], "stop_sec": [], "start": [], "stop": []}
@@ -66,21 +62,6 @@ def getUserConfig(fileName, splitterChar):
                 settingValue = settingValue.strip()
                 userConfig[settingName] = settingValue
     return userConfig
-
-
-def set_manual_override(state):
-    """Set manual camera override flag."""
-
-    global manual_override
-    with state_lock:
-        manual_override = bool(state)
-
-
-def get_manual_override():
-    """Return manual override flag."""
-
-    with state_lock:
-        return manual_override
 
 
 def set_camera_running(state):
@@ -166,17 +147,13 @@ def is_time_in_schedule(now, start_sec, stop_sec, lead=0, lag=0):
     return False
 
 
-def schedule_active_with_margin(now=None):
-    """Helper to check schedule status with configured margins."""
+def in_record_window(now=None):
+    """Return True if local time is inside a recording window (clips are saved)."""
 
     if now is None:
-        now = time.time()
+        now = time.time() - time.timezone  # schedule is in local time
     return is_time_in_schedule(
-        now,
-        schedule_cache["start_sec"],
-        schedule_cache["stop_sec"],
-        SCHEDULE_LEAD_SEC,
-        SCHEDULE_LAG_SEC,
+        now, schedule_cache["start_sec"], schedule_cache["stop_sec"]
     )
 
 
@@ -280,11 +257,8 @@ def generateHTML(resolution, ip):
     except Exception:
         storage_display = "N/A"
 
-    override_state = "ON" if get_manual_override() else "OFF"
     camera_state = "ON" if is_camera_running() else "OFF"
-    schedule_state = "ACTIVE" if schedule_active_with_margin() else "INACTIVE"
-    button_target = "/camera/off" if get_manual_override() else "/camera/on"
-    button_label = "Camera Off" if get_manual_override() else "Camera On"
+    schedule_state = "YES" if in_record_window() else "NO"
 
     PAGE = """\
     <html>
@@ -310,8 +284,7 @@ def generateHTML(resolution, ip):
                 <td align="center"><font color="000FF">%s</font></td>
       </tr>
     </table>
-    <p>Camera Status: <b>%s</b> | Schedule (±10 min): <b>%s</b> | Manual Override: <b>%s</b></p>
-    <form action="%s" method="get"><input type="submit" value="%s"></form>
+    <p>Camera Status: <b>%s</b> | Saving clips (recording window): <b>%s</b></p>
     <p><img src="stream.mjpg" width="%d" height="%d" /></p>
     </body>
     </html>
@@ -326,9 +299,6 @@ def generateHTML(resolution, ip):
         storage_display,
         camera_state,
         schedule_state,
-        override_state,
-        button_target,
-        button_label,
         resolution[1],
         resolution[0],
     )
@@ -371,8 +341,6 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
 
     PATH_SUFFIXES = (
         "/status",
-        "/off",
-        "/on",
         "/stream.mjpg",
         "/index.html",
     )
@@ -442,25 +410,10 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.wfile.write(content)
             return
 
-        if suffix == "/on":
-            set_manual_override(True)
-            self.send_response(302)
-            self.send_header("Location", self._build_index_redirect(base))
-            self.end_headers()
-            return
-
-        if suffix == "/off":
-            set_manual_override(False)
-            self.send_response(302)
-            self.send_header("Location", self._build_index_redirect(base))
-            self.end_headers()
-            return
-
         if suffix == "/status":
             status = {
-                "manual_override": get_manual_override(),
                 "camera_running": is_camera_running(),
-                "schedule_active": schedule_active_with_margin(),
+                "record_window": in_record_window(),
             }
             payload = str(status).encode("utf-8")
             self.send_response(200)
@@ -750,22 +703,30 @@ class PiCameraObject(object):
         self,
         preEventSaveTime=2,
         initialWaitTime=10,
-        inactivityTime=2,
+        inactivityTime=5,
+        postEventSaveTime=2,
         circularBufferSize=60,
+        maxClipTime=50,
     ):
         """Sets camera buffer parameters.
 
         Parameters:
-            preEventSaveTime   : Minimum pre-event buffer in sec
-            initialWaitTime    : Initial wait time in sec
-            inactivityTime     : Second event wait time in sec
+            preEventSaveTime   : Video kept before the first event, in sec
+            initialWaitTime    : Close the clip if the line stays high this long, in sec
+            inactivityTime     : Close the clip after this long with no event, in sec
+                                 (long enough to keep a poke and its licks in one clip)
+            postEventSaveTime  : Video kept after the last event, in sec
             circularBufferSize : Total ring buffer size in sec
+            maxClipTime        : Save a clip once it is this long, in sec, before its
+                                 start leaves the ring buffer
         """
 
         self.vidBuffer = preEventSaveTime
         self.T1 = initialWaitTime
         self.T2 = inactivityTime
+        self.postBuffer = postEventSaveTime
         self.bufferLen = circularBufferSize
+        self.maxClip = maxClipTime
 
     def setStorage(self, dirPath=None):
         """Set storage path for video files.
@@ -1277,20 +1238,22 @@ class PiCameraObject(object):
                     if self.stopRequested:
                         raise Exception("StopRequested")
 
-                    # stop and close video if time elapses
-                    if (
-                        recordFlag == 1 and (self.getTime() - lastGPIOtime) > self.T1
-                    ) or (
-                        recordFlag == 2 and (self.getTime() - lastGPIOtime) > self.T2
-                    ):
+                    # close the clip: line held high for T1, no event for T2, or
+                    # clip as long as maxClip (save before its start leaves the buffer)
+                    now = self.getTime()
+                    vidStopTime = None
+                    if recordFlag == 1 and now - lastGPIOtime > self.T1:
+                        vidStopTime = lastGPIO[1] + self.T1 * 1e6
+                    elif recordFlag == 2 and now - lastGPIOtime > self.T2:
+                        vidStopTime = lastGPIO[1] + self.postBuffer * 1e6
+                    elif recordFlag and now - startTime > self.maxClip:
+                        vidStopTime = self.camera.timestamp
+
+                    if vidStopTime is not None:
 
                         with open(self.timeFileName, "a") as timeFile:
                             timeFile.write(eventLog)
                         vidStartTime = camStartTime - self.vidBuffer * 1e6
-                        if recordFlag == 1:
-                            vidStopTime = lastGPIO[1] + self.T1 * 1e6
-                        elif recordFlag == 2:
-                            vidStopTime = lastGPIO[1] + self.T2 * 1e6
 
                         duration = round((vidStopTime - vidStartTime) / 1e6)
 
@@ -1318,6 +1281,10 @@ class PiCameraObject(object):
                         raise Exception("An exit signal received by OS.")
 
                 lastGPIO = self.GPIOqueue.get()
+
+                # camera runs all day for the stream; save clips only in recording windows
+                if recordFlag == 0 and not self.checkTime():
+                    continue
 
                 # start recording
                 if recordFlag == 0 and lastGPIO[0] % 2 == 1:
@@ -1687,8 +1654,10 @@ if __name__ == "__main__":
             cam1.setBuffer(
                 preEventSaveTime=2,
                 initialWaitTime=10,
-                inactivityTime=2,
+                inactivityTime=5,
+                postEventSaveTime=2,
                 circularBufferSize=60,
+                maxClipTime=50,
             )
         cam1.recordSchedule()
         cam1.setStorage(video_dir)
@@ -1725,12 +1694,9 @@ if __name__ == "__main__":
 
     try:
         while not exitInst.exitStatus:
-            desired_on = get_manual_override() or schedule_active_with_margin()
-            if desired_on and camThread is None:
+            if camThread is None:
                 start_camera()
-            elif (not desired_on) and camThread is not None:
-                stop_camera()
-            elif camThread is not None and not camThread.is_alive():
+            elif not camThread.is_alive():
                 cam1 = None
                 camThread = None
                 set_camera_running(False)

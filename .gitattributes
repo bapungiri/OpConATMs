@@ -1,0 +1,8 @@
+# Everything here runs on the Pis: keep Unix line endings in the working copy too,
+# or scripts started via their shebang (PiCamMain.py) fail with "No such file".
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gz binary
+*.elf binary
+*.pyc binary

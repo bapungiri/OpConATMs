@@ -228,7 +228,7 @@ def deploy_one(rig, timeout, echo=True):
     lines = []
 
     proc = subprocess.Popen(
-        [sys.executable, SUBMIT],
+        [sys.executable, "-u", SUBMIT],
         cwd=str(rig["dir"]),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -237,11 +237,20 @@ def deploy_one(rig, timeout, echo=True):
         bufsize=1,
     )
 
+    # RemoteJobSubmission.py never exits, on success or on a failed Teensy
+    # upload: it keeps streaming the Pi's output. Stopping it at either marker
+    # leaves the Pi job as it is.
+    submitted, failed = threading.Event(), threading.Event()
+
     def pump():
         for line in proc.stdout:
             lines.append(line)
             if echo:
                 print(f"    | {line.rstrip()}")
+            if "SubmitComplete" in line:
+                submitted.set()
+            elif "EXCEPTION HAPPENED" in line:
+                failed.set()
 
     reader = threading.Thread(target=pump, daemon=True)
     reader.start()
@@ -255,18 +264,22 @@ def deploy_one(rig, timeout, echo=True):
     except Exception:
         pass
 
-    try:
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
+    deadline = time.time() + timeout
+    while proc.poll() is None and time.time() < deadline:
+        if submitted.is_set() or failed.wait(1):
+            time.sleep(5)  # let the error report finish printing
+            break
+    if proc.poll() is None:
         proc.kill()
-        lines.append(f"\n*** killed after {timeout}s ***\n")
+        if not (submitted.is_set() or failed.is_set()):
+            lines.append(f"\n*** killed after {timeout}s ***\n")
     reader.join(timeout=10)
 
     with open(log_path, "w") as f:
         f.write(f"# {rig['name']} ({rig['subject']}) {datetime.now():%Y-%m-%d %H:%M:%S}\n")
         f.writelines(lines)
 
-    return proc.returncode, log_path
+    return (0 if submitted.is_set() else proc.returncode), log_path
 
 
 # ---------------------------------------------------------------- verify

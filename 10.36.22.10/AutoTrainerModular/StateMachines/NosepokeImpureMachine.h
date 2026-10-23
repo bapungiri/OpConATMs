@@ -77,7 +77,7 @@ static int checkSMStateStopGeneric(const NosepokeImpureStruct &st)
 inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
 {
     // ---------for unstructured probability--------
-    int unstrProb = 80;
+    int unstrProb = 95;
     // ---------max blocks before session stops (-1 = no limit, alarm-based only)--------
     int maxBlocks = -1;
     // -----------------

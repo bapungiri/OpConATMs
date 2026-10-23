@@ -791,7 +791,12 @@ def deployPiCamTransfer(
                 "cd ",
                 rpiRoot,
                 sep,
-                "pkill PiCamMain*",
+                # unquoted PiCamMain* was expanded by the shell to the files in
+                # rpiRoot, so pkill got two patterns and killed nothing; match the
+                # python command line instead, anchored so this shell never matches
+                "P='^[^ ]*python[0-9.]* +[./]*PiCamMain'; pkill -f \"$P\"; "
+                "for i in $(seq 20); do pgrep -f \"$P\" >/dev/null || break; sleep 1; done; "
+                "pkill -9 -f \"$P\"",
                 sep,
                 "chmod +x PiCamMain.py",
                 sep,

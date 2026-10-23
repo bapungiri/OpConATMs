@@ -663,6 +663,11 @@ def main():
     local_video_dir = os.path.join(subject_output_dir, "Video")
     try:
         os.makedirs(local_video_dir, exist_ok=True)
+        # This runs as root from cron; PiCamMain.py (user pi) must be able to
+        # create day folders here, so give both dirs to the owner of their parent.
+        owner = os.stat(os.path.dirname(subject_output_dir))
+        for d in (subject_output_dir, local_video_dir):
+            os.chown(d, owner.st_uid, owner.st_gid)
     except Exception:
         pass
     if local_video_dir not in lookInPaths:
