@@ -298,9 +298,14 @@ def remoteFileCat(tailSFTPClient, logFilePath):
     fileSize = fileStatus.st_size
 
 
-def readCompilerOutput(fileName, rpiRoot, rpiHost, rpiUser, rpiPass, iFlag=True):
+def readCompilerOutput(
+    fileName, rpiRoot, rpiHost, rpiUser, rpiPass, iFlag=True, timeout=900
+):
     """
-    Read content of compiler output, e.g., log.out
+    Print compiler output, e.g., log.out, until MainCode.py reports the job.
+    Returns True at "SubmitComplete", False a few seconds after an
+    "EXCEPTION HAPPENED" (so its error report is printed too), on Ctrl+C or
+    after timeout seconds without either.
     """
 
     logFilePath = "".join([rpiRoot, fileName])
@@ -310,20 +315,33 @@ def readCompilerOutput(fileName, rpiRoot, rpiHost, rpiUser, rpiPass, iFlag=True)
     tailSSH = createSSHClient(rpiHost, rpiUser, rpiPass)
     tailSFTPClient = tailSSH.open_sftp()
 
+    deadline = time.time() + timeout
+    failedAt = None
     try:
-        while True:
+        while time.time() < deadline:
             for lineFeed in remoteFileCat(tailSFTPClient, logFilePath):
                 print(lineFeed)
+                if "SubmitComplete" in lineFeed:
+                    return True
+                if "EXCEPTION HAPPENED" in lineFeed and failedAt is None:
+                    failedAt = time.time()
 
+            if failedAt is not None and time.time() - failedAt > 5:
+                return False
             time.sleep(1)
+
+        print("   ... * No SubmitComplete after %d s; stopped reading." % timeout)
+        return False
 
     except KeyboardInterrupt:
         print("")
         if iFlag:
             print("   ... User interrupted program.")
+        return False
     except Exception as e:
         print("   ... * EXCEPTION HAPPENED : Cannot read remote file.")
         print("   ... * Error : %s: %s" % (e.__class__, e))
+        return False
     finally:
         if iFlag:
             print("   ... Closing SSH and SFTP clients.")
@@ -997,7 +1015,7 @@ def main():
     printSTDOutput(stderr)
 
     # Read the log.out content as soon as the compile/upload process ends
-    readCompilerOutput("log.out", rpiRoot, rpiHost, rpiUser, rpiPass)
+    submitted = readCompilerOutput("log.out", rpiRoot, rpiHost, rpiUser, rpiPass)
 
     try:
         rpiSSH.close()
@@ -1006,6 +1024,9 @@ def main():
         print("   ... * Error : %s: %s" % (e.__class__, e))
         pass
 
+    return submitted
+
 
 if __name__ == "__main__":
-    main()
+    # exit status for scripts (deploy_all.py): 0 once the job is running
+    sys.exit(0 if main() else 1)

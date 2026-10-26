@@ -237,20 +237,11 @@ def deploy_one(rig, timeout, echo=True):
         bufsize=1,
     )
 
-    # RemoteJobSubmission.py never exits, on success or on a failed Teensy
-    # upload: it keeps streaming the Pi's output. Stopping it at either marker
-    # leaves the Pi job as it is.
-    submitted, failed = threading.Event(), threading.Event()
-
     def pump():
         for line in proc.stdout:
             lines.append(line)
             if echo:
                 print(f"    | {line.rstrip()}")
-            if "SubmitComplete" in line:
-                submitted.set()
-            elif "EXCEPTION HAPPENED" in line:
-                failed.set()
 
     reader = threading.Thread(target=pump, daemon=True)
     reader.start()
@@ -264,22 +255,21 @@ def deploy_one(rig, timeout, echo=True):
     except Exception:
         pass
 
-    deadline = time.time() + timeout
-    while proc.poll() is None and time.time() < deadline:
-        if submitted.is_set() or failed.wait(1):
-            time.sleep(5)  # let the error report finish printing
-            break
-    if proc.poll() is None:
+    # RemoteJobSubmission.py exits by itself: 0 once the job is running, 1 on a
+    # failed Teensy upload or when it gives up waiting for the job.
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
         proc.kill()
-        if not (submitted.is_set() or failed.is_set()):
-            lines.append(f"\n*** killed after {timeout}s ***\n")
+        proc.wait()
+        lines.append(f"\n*** killed after {timeout}s ***\n")
     reader.join(timeout=10)
 
     with open(log_path, "w") as f:
         f.write(f"# {rig['name']} ({rig['subject']}) {datetime.now():%Y-%m-%d %H:%M:%S}\n")
         f.writelines(lines)
 
-    return (0 if submitted.is_set() else proc.returncode), log_path
+    return proc.returncode, log_path
 
 
 # ---------------------------------------------------------------- verify
@@ -327,7 +317,7 @@ def main():
     ap.add_argument("--yes", action="store_true", help="skip the confirmation")
     ap.add_argument("--force", action="store_true", help="deploy despite preflight problems")
     ap.add_argument("--include-retired", action="store_true")
-    ap.add_argument("--timeout", type=int, default=900, help="per-rig seconds")
+    ap.add_argument("--timeout", type=int, default=1200, help="per-rig seconds")
     ap.add_argument("--stop-on-error", action="store_true")
     args = ap.parse_args()
 
