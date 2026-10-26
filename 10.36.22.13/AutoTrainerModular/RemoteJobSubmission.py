@@ -811,29 +811,14 @@ def deployPiCamTransfer(
         )
         stdin, stdout, stderr = rpiSSH.exec_command(rpiCommands)
 
-        S2 = " ".join(
-            [
-                "nohup ./FileTransfer.py -f",
-                setFile,
-                "</dev/null >/home/pi/log3.out 2>&1 &",
-            ]
-        )
+        # FileTransfer.py (daytime rsync of video) is no longer started: the nightly
+        # convertAndTransfer.py already moves all video. Stop any copy still running.
         rpiCommands = "".join(
             [
                 "cd ",
                 rpiRoot,
                 sep,
                 "pkill FileTransfer*",
-                sep,
-                "chmod +x FileTransfer.py",
-                sep,
-                "sleep 1",
-                sep,
-                "mv /home/pi/log3.out /home/pi/log3_old.out 2>/dev/null",
-                sep,
-                "export PYTHONUNBUFFERED=1",
-                sep,
-                S2,
             ]
         )
 

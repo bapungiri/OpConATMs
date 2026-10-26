@@ -728,12 +728,22 @@ class PiCameraObject(object):
         self.bufferLen = circularBufferSize
         self.maxClip = maxClipTime
 
-    def setStorage(self, dirPath=None):
+    def clipName(self, startTime):
+        """'<subject>_<YYYY-MM-DD>_<HH-MM-SS>' for a clip starting at startTime
+        (local-time epoch seconds, as from getTime)."""
+
+        stamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime(startTime))
+        return "%s_%s" % (self.subject, stamp)
+
+    def setStorage(self, dirPath=None, subject="Subject"):
         """Set storage path for video files.
 
         Parameters:
             dirPath : Directory path to save video files
+            subject : Animal name, used in the clip file names
         """
+
+        self.subject = subject
 
         self.root = os.path.realpath("")
         self.gainPath = os.path.join(self.root, "GainSettings")
@@ -1291,7 +1301,7 @@ class PiCameraObject(object):
                     (camStartTime, startTime) = lastGPIO[1:]
                     lastGPIOtime = lastGPIO[2]
 
-                    fname = "v%d-%05d" % (self.framerate, int(startTime) % 86400)
+                    fname = self.clipName(startTime)
                     dname = getTimeFormat()
                     pname = os.path.join(self.storagePath, dname)
                     if not os.path.exists(pname):
@@ -1440,10 +1450,7 @@ class PiCameraObject(object):
                     # start/split new recording
                     if startFlag or splitFlag:
                         startTime = self.getTime()
-                        fname = "v%d-%05d" % (
-                            self.camera.framerate,
-                            int(startTime) % 86400,
-                        )
+                        fname = self.clipName(startTime)
                         dname = getTimeFormat()
                         pname = os.path.join(self.storagePath, dname)
                         fPathNoExt = os.path.join(pname, fname)
@@ -1660,7 +1667,7 @@ if __name__ == "__main__":
                 maxClipTime=50,
             )
         cam1.recordSchedule()
-        cam1.setStorage(video_dir)
+        cam1.setStorage(video_dir, userConfig["Subject_Name"])
         cam1.loadGainsFile()
 
         if cameraConfig["WebCam_Preview"].lower() == "true":

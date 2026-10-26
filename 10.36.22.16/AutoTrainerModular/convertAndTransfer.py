@@ -179,6 +179,16 @@ def findLatest(files, exts):
 
 
 def convertVideo(file, fps, keepSource=False):
+    if os.path.getsize(file) == 0:
+        # An empty clip (camera stopped before its first frame) can never be
+        # converted: delete it and its .frames/.events instead of retrying daily.
+        base = os.path.splitext(file)[0]
+        for f in (file, base + ".frames", base + ".events"):
+            if os.path.exists(f):
+                os.remove(f)
+        logPrint("convertVideo: deleted empty video %s" % file)
+        raise Exception("empty video deleted")
+
     newFile = os.path.splitext(file)[0] + ".mp4"
     # cmd = "ffmpeg -framerate %s -i %s -c:v copy -r %s %s -y && rm %s" % (fps, file, fps, newFile, file)
     cmd = "ffmpeg -framerate %s -i %s -c:v copy -r %s %s -y" % (fps, file, fps, newFile)
