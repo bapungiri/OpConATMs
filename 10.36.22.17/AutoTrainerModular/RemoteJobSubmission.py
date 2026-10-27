@@ -319,12 +319,15 @@ def readCompilerOutput(
     failedAt = None
     try:
         while time.time() < deadline:
-            for lineFeed in remoteFileCat(tailSFTPClient, logFilePath):
-                print(lineFeed)
-                if "SubmitComplete" in lineFeed:
-                    return True
-                if "EXCEPTION HAPPENED" in lineFeed and failedAt is None:
-                    failedAt = time.time()
+            try:
+                for lineFeed in remoteFileCat(tailSFTPClient, logFilePath):
+                    print(lineFeed)
+                    if "SubmitComplete" in lineFeed:
+                        return True
+                    if "EXCEPTION HAPPENED" in lineFeed and failedAt is None:
+                        failedAt = time.time()
+            except FileNotFoundError:
+                pass  # the new MainCode.py has not created log.out yet
 
             if failedAt is not None and time.time() - failedAt > 5:
                 return False
@@ -421,7 +424,12 @@ def checkTeensyUSBConnection(rpiRoot, rpiSSH, userConfig):
                 "cd ",
                 rpiRoot,
                 sep,
-                "pkill MainCode*",
+                # stop the running MainCode.py and wait until it is gone: unquoted
+                # MainCode* expanded to the files here (MainCode_rishika_og.py ...),
+                # so pkill killed nothing and old jobs only died at the reflash
+                "P='^[^ ]*python[0-9.]* +[./]*MainCode[.]py'; pkill -f \"$P\"; "
+                "for i in $(seq 20); do pgrep -f \"$P\" >/dev/null || break; sleep 1; done; "
+                "pkill -9 -f \"$P\"",
                 sep,
                 "pkill java",
                 sep,
