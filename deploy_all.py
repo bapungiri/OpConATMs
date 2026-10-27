@@ -13,9 +13,12 @@ Three phases:
   preflight  Read-only. For each rig: is it reachable, is ATM running and for
              which animal, does that match userInfo.in, and is there disk
              left. Nothing is touched.
-  deploy     Sequential, one rig at a time, streaming output. Each rig gets
-             RemoteJobSubmission.py run with cwd set to its folder, exactly
-             as if you had cd-ed there, with 'y' fed to the overwrite prompt.
+  deploy     --parallel rigs at a time (default 4; the rigs are independent).
+             Each rig gets RemoteJobSubmission.py run with cwd set to its
+             folder, exactly as if you had cd-ed there, with 'y' fed to the
+             overwrite prompt. Its output goes to deploy_logs/<rig>.log and a
+             line is printed as each rig finishes; with --parallel 1 the
+             output is streamed live instead.
   verify     Re-check every rig: ATM running again, and started just now
              rather than left over from before.
 
@@ -24,6 +27,7 @@ Run it from the 'atm' conda environment, which is the one with paramiko:
     conda run -n atm python deploy_all.py --dry-run
     conda run -n atm python deploy_all.py
     conda run -n atm python deploy_all.py --rigs 10.36.22.12 10.36.22.13
+    conda run -n atm python deploy_all.py --parallel 1   # one by one, live output
 
 Deploy before the animals start at 19:00, and not around 13:00, which is
 when the logs rotate and the NAS transfer runs. Mid-afternoon leaves room to
@@ -36,6 +40,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -319,6 +324,8 @@ def main():
     ap.add_argument("--include-retired", action="store_true")
     ap.add_argument("--timeout", type=int, default=1200, help="per-rig seconds")
     ap.add_argument("--stop-on-error", action="store_true")
+    ap.add_argument("--parallel", type=int, default=4,
+                    help="rigs deployed at once (1 = one by one, output shown live)")
     args = ap.parse_args()
 
     try:
@@ -357,14 +364,36 @@ def main():
 
     started_at = time.time()
     results = {}
-    for i, rig in enumerate(rigs, 1):
-        print(f"\n[{i}/{len(rigs)}] {rig['name']}  ({rig['subject']})")
-        rc, log_path = deploy_one(rig, args.timeout)
-        results[rig["name"]] = rc
-        print(f"    -> exit {rc}, log: {log_path.relative_to(ROOT)}")
-        if rc != 0 and args.stop_on_error:
-            print("Stopping on error.")
-            break
+    stop = threading.Event()
+    parallel = max(1, args.parallel)
+    if parallel > 1:
+        print(f"\nDeploying {parallel} at a time; each rig's output goes to its log.")
+
+    def run(rig):
+        # with --stop-on-error, rigs not yet started are skipped after a failure
+        if stop.is_set():
+            return None
+        if parallel == 1:
+            print(f"\n[{rig['name']}]  ({rig['subject']})")
+        return deploy_one(rig, args.timeout, echo=parallel == 1)
+
+    with ThreadPoolExecutor(max_workers=parallel) as pool:
+        futures = {pool.submit(run, rig): rig for rig in rigs}
+        for fut in as_completed(futures):
+            rig = futures[fut]
+            if fut.result() is None:
+                continue
+            rc, log_path = fut.result()
+            results[rig["name"]] = rc
+            done = len(results)
+            note = next(
+                (l.strip(" .\n") for l in open(log_path) if "Starting at stage" in l), ""
+            )
+            print(f"  [{done}/{len(rigs)}] {rig['name']:<13} {rig['subject']:<7} "
+                  f"exit {rc}  {note}  (log: {log_path.relative_to(ROOT)})")
+            if rc != 0 and args.stop_on_error and not stop.is_set():
+                stop.set()
+                print("Stopping on error: rigs not yet started are skipped.")
 
     failed = verify(rigs, started_at)
 
