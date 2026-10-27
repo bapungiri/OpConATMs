@@ -3,6 +3,7 @@ RPi_IP              = 10.36.22.16
 Experiment_Name     = Nosepoke2port
 Box_Name            = F02
 Subject_Name        = BGF10
+Seed_Stage          = BGF10:6   # one-time: start stage while this animal has no state.json
 Daily_Water         = 2000
 Water_Minimum       = 75%
 TimeSyncFreq        = 1HR

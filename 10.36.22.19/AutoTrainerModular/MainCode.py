@@ -16,6 +16,7 @@ import netifaces  # Python module to find device IP address
 import random  # Python random number module
 import RPi.GPIO as GPIO  # Python RPi GPIO utility
 import re  # Python regular expression module
+import json  # animal state file (stage, water)
 import signal  # Python signal module [e.g., exit signal]
 from PIL import Image, ImageDraw, ImageFont  # Python Image module [change background]
 
@@ -204,6 +205,91 @@ def getUserConfig(fileName, splitterChar):
                     settingValue = settingValue[1:-1]
                 userConfig[settingName] = settingValue
     return userConfig
+
+
+STATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"  # strptime/strftime: the Pi3Bs run Python 3.5
+
+
+def statePath(userConfig):
+    """state.json in the animal's data folder: its training stage and water totals."""
+
+    return os.path.join(getOutputDir(userConfig), "state.json")
+
+
+def saveState(path, state):
+    """Write the animal's state atomically (a reboot mid-write keeps the old file)."""
+
+    state["saved"] = datetime.datetime.now().strftime(STATE_TIME_FORMAT)
+    with open(path + ".tmp", "w") as fh:
+        json.dump(state, fh, indent=1)
+    os.replace(path + ".tmp", path)
+
+
+def lastWaterReset(machine, now, alarmFile="SetInitialAlarms.h"):
+    """When the DailyWater/WeeklyWater alarm (which resets that water total) last
+    fired before now, from SetInitialAlarms.h; None if it is not set there."""
+
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    try:
+        lines = open(alarmFile).read().splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        line = line.strip()
+        if line.startswith("//") or (machine + ")") not in line:
+            continue
+        m = re.search(r"SetDailyAlarms\((\d+),\s*(\d+)", line)
+        if m:
+            t = now.replace(hour=int(m.group(1)), minute=int(m.group(2)), second=0, microsecond=0)
+            return t if t <= now else t - datetime.timedelta(days=1)
+        m = re.search(r"SetWeeklyAlarms\(dow(\w+),\s*(\d+),\s*(\d+)", line)
+        if m and m.group(1) in days:
+            t = now.replace(hour=int(m.group(2)), minute=int(m.group(3)), second=0, microsecond=0)
+            t -= datetime.timedelta(days=(now.weekday() - days.index(m.group(1))) % 7)
+            return t if t <= now else t - datetime.timedelta(days=7)
+    return None
+
+
+def writeStartState(userConfig):
+    """Write StartState.h for the coming compile from the animal's state.json, so a
+    deploy or reboot continues at its stage with the water it already had. Water
+    totals are kept only if their reset alarm has not fired since they were saved.
+    A new animal (no state.json) starts at stage 0, unless userInfo.in has a
+    one-time 'Seed_Stage = <Subject_Name>:<stage>' for it."""
+
+    state = {"stage": 0, "dailyIntake": 0, "weeklyIntake": 0, "saved": None}
+    path = statePath(userConfig)
+    try:
+        with open(path) as fh:
+            state.update(json.load(fh))
+    except (OSError, ValueError):
+        subject, _, stage = userConfig.get("Seed_Stage", "").partition(":")
+        if subject.strip() == userConfig["Subject_Name"] and stage.strip().isdigit():
+            state["stage"] = int(stage)
+
+    now = datetime.datetime.now()
+    try:
+        saved = datetime.datetime.strptime(state["saved"], STATE_TIME_FORMAT)
+    except (TypeError, ValueError):
+        saved = None
+    for key, machine in (("dailyIntake", "DailyWater"), ("weeklyIntake", "WeeklyWater")):
+        reset = lastWaterReset(machine, now)
+        if saved is None or reset is None or saved < reset:
+            state[key] = 0
+
+    with open("StartState.h", "w") as fh:
+        fh.write(
+            "// Written by MainCode.py from %s\n"
+            "#ifndef _StartState_h\n#define _StartState_h\n"
+            "#define START_STAGE %d\n#define START_DAILY_INTAKE %d\n#define START_WEEKLY_INTAKE %d\n"
+            "#endif\n" % (path, state["stage"], state["dailyIntake"], state["weeklyIntake"])
+        )
+    saveState(path, state)
+    print(
+        "   ... Starting at stage %d (daily water %d, weekly %d) from %s"
+        % (state["stage"], state["dailyIntake"], state["weeklyIntake"], path)
+    )
+    return state
 
 
 def compileUploadTeensy(userConfig):
@@ -835,6 +921,13 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
         # Reset daily Water
         dailyWater = 0
 
+        # The animal's stage and water totals, saved for restarts: stage changes
+        # (event 65) at once, water at most once a minute
+        state = animalState
+        statePathN = statePath(userConfig)
+        stateDirty = stageChanged = False
+        lastStateSave = time.time()
+
         # Serial time out check
         lastTimeSerialCheck = int(time.time())
         serialTimeOutCheck = int(userConfig["Serial_TimeOut"])
@@ -982,6 +1075,19 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                             f.write(eachLine)
                             dataLineCount += 1
 
+                            try:
+                                new = {
+                                    "stage": int(words[1]) if words[0] == "65" else state["stage"],
+                                    "dailyIntake": int(words[6]),
+                                    "weeklyIntake": int(words[7]),
+                                }
+                            except ValueError:
+                                new = {}
+                            if new and any(state[k] != v for k, v in new.items()):
+                                stageChanged |= new["stage"] != state["stage"]
+                                state.update(new)
+                                stateDirty = True
+
                 # Reset accumulated string
                 totalDataRead = ""
 
@@ -1004,6 +1110,14 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
             # close the file until next read [for tail -f output]
             f.close()
             tsf.close()
+
+            if stateDirty and (stageChanged or time.time() - lastStateSave > 60):
+                try:
+                    saveState(statePathN, state)
+                except OSError as e:
+                    writeLogFile(msgFileN, ["Error:", "Could not save %s: %s" % (statePathN, e)])
+                stateDirty = stageChanged = False
+                lastStateSave = time.time()
 
             # Change temporary analog file names
             if analogEnabled:
@@ -1178,8 +1292,11 @@ def liveMonitor(ser):
 def addCrontab(userConfig):
     minute = userConfig["Daily_Time"].split(":")[1]
     hour = userConfig["Daily_Time"].split(":")[0]
+    # second line: lxpanel (the desktop panel, also in VNC sessions) leaks memory
+    # over weeks; kill it daily at noon, between sessions, and its autostart
+    # (@lxpanel) brings it straight back
     cmd = (
-        'script="convertAndTransfer.py" ; cwd="$PWD/" ; echo "%s %s * * * cd $cwd ; sudo python3 $cwd/$script" | crontab -'
+        'script="convertAndTransfer.py" ; cwd="$PWD/" ; printf "%s %s * * * cd $cwd ; sudo python3 $cwd/$script\n0 12 * * * pkill -x lxpanel\n" | crontab -'
         % (minute, hour)
     )
 
@@ -1254,7 +1371,9 @@ def main():
     # Experiment start timeT
     expStartTime = time.time()
 
-    # Compile and upload Teensy code
+    # Compile and upload Teensy code, starting from the animal's saved stage
+    global animalState
+    animalState = writeStartState(userConfig)
     compileUploadTeensy(userConfig)
 
     # Check analog serial status [True: Enabled, False: Disabled]

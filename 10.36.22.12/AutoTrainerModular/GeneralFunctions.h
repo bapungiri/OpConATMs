@@ -239,6 +239,7 @@ void AdvanceCurrentStage(bool changeSMFlag = true)
     if (trainingProtocol[currentTrainingProtocol][currentStage[currentTrainingProtocol] + 1][0] != DoNothing)
     {
       currentStage[currentTrainingProtocol]++;
+      ReportData(65, currentStage[currentTrainingProtocol], (millis() - stateMachineStartTime));
     }
   }
 

@@ -76,6 +76,7 @@ void NosepokeNonSessionMachine(){
 				ReportData(63, NosepokeNonSessionVar.nosepokeCounter, (millis()-stateMachineStartTime));
 				if (currentStage[currentTrainingProtocol] <2){
 					currentStage[currentTrainingProtocol]++;
+					ReportData(65, currentStage[currentTrainingProtocol], (millis()-stateMachineStartTime));
 				}
 				GetCurrentNonSessionStateMachine();
 				EndCurrentStateMachine();

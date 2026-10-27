@@ -69,6 +69,8 @@ stateMachine trainingProtocol[numTrainingProtocol][maxNumStage][3] = {
     // }
     // New training protocol for nosepoke task, id = 0, 8/2/23
     {
+        // All stages stay listed: each animal starts at its saved stage
+        // (StartState.h, written by MainCode.py from its state.json)
         {LickTrain, NosepokeRewardNonSession},
         {LickTest, NosepokeRewardNonSession},
         {Nosepoke1sound, NosepokeRewardNonSession},
