@@ -12,6 +12,7 @@ struct NosepokeImpureStruct
     int trialCounter;        // lick-count trials (increment on lick only)
     int unstructuredProb;    // probability (%) of drawing unstructured pair for this animal
     uint64_t sessionStartMs; // session start epoch ms (per animal instance)
+    unsigned long sessionStartMillis; // millis() at session start: base for the *RelMs times
 };
 
 static void updateRewProbGeneric(NosepokeImpureStruct &st, int unstrProb)
@@ -82,13 +83,18 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
     RunStartANDEndStateMachine(&startStateMachine);
     InitializeStateMachine();
     if (st.sessionStartMs == 0)
+    {
         st.sessionStartMs = epochMillis();
+        // epochMillis() only has whole-second resolution when called sparsely,
+        // so relative times come from millis(), the same clock as .dat smTime
+        st.sessionStartMillis = millis();
+    }
 
     st.blockNum = 0;
 
     while (!stateStop)
     {                                                           // block loop
-        int blockStartTime = epochMillis() - st.sessionStartMs; // Relative to session start
+        int blockStartTime = millis() - st.sessionStartMillis; // Relative to session start
 
         // Increment block but reset reward and trial counters
         st.blockNum++;
@@ -112,7 +118,7 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
             if (Nosepoke1DI.isOn() || Nosepoke2DI.isOn())
             {
                 // Trial starts when nosepoke detected
-                int trialStartTime = epochMillis() - st.sessionStartMs;
+                int trialStartTime = millis() - st.sessionStartMillis;
                 unsigned int whenNosepoke = (millis() - stateMachineStartTime);
 
                 // Detect which port
@@ -177,7 +183,7 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
                 }
 
                 // Calculate trial end time relative to session start time
-                int trialEndTime = epochMillis() - st.sessionStartMs;
+                int trialEndTime = millis() - st.sessionStartMillis;
 
                 // Report data for .dat file
                 if (lickDetected)
@@ -234,7 +240,7 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
 inline void NosepokeImpureMachine()
 {
     // Non-static instance: resets every time this wrapper is invoked.
-    NosepokeImpureStruct st = {0, {0, 0}, 0, 0, 0, 0};
+    NosepokeImpureStruct st = {0, {0, 0}, 0, 0, 0, 0, 0};
     NosepokeImpureMachineCore(st);
 }
 

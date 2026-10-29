@@ -606,6 +606,7 @@ class PiCameraObject(object):
         camPin       : GPIO pin number on RPi to receive events from Teensy
         splitter_port: Splitter port number on Pi camera
         format       : Video file format (h264, mjpeg)
+        stampEvents  : burn frame number + EVENT (line high) into the frames
     """
 
     def __init__(
@@ -618,6 +619,7 @@ class PiCameraObject(object):
         camPin=26,
         splitter_port=1,
         format="h264",
+        stampEvents=False,
     ):
         """Returns a PiCamera object whose name is *name*."""
 
@@ -642,6 +644,14 @@ class PiCameraObject(object):
         self.setSensorMode()
 
         self.camera.led = False
+
+        # GPU text overlay, in recorded clips and the web preview; it lands
+        # 1-2 frames after the edge, so use .events/.frames for exact timing
+        self.stampEvents = stampEvents
+        if stampEvents:
+            self.camera.annotate_text_size = 20
+            self.camera.annotate_background = picamera.Color("black")
+            self.camera.annotate_frame_num = True
 
         self.setupGPIO()
 
@@ -680,6 +690,7 @@ class PiCameraObject(object):
 
         camTime = self.camera.timestamp
         piTime = self.getTime()
+        mono = time.monotonic()  # same clock as MainCode's .pitime
         PinStatus = int(GPIO.input(self.camPin) == GPIO.HIGH)
 
         # Denoising
@@ -688,7 +699,9 @@ class PiCameraObject(object):
         else:
             return
 
-        self.GPIOqueue.put((PinStatus, camTime, piTime))
+        self.GPIOqueue.put((PinStatus, camTime, piTime, mono))
+        if self.stampEvents:
+            self.camera.annotate_text = "EVENT" if PinStatus else ""
         return
 
     def setupGPIO(self):
@@ -1298,7 +1311,7 @@ class PiCameraObject(object):
 
                 # start recording
                 if recordFlag == 0 and lastGPIO[0] % 2 == 1:
-                    (camStartTime, startTime) = lastGPIO[1:]
+                    (camStartTime, startTime) = lastGPIO[1:3]
                     lastGPIOtime = lastGPIO[2]
 
                     fname = self.clipName(startTime)
@@ -1340,7 +1353,7 @@ class PiCameraObject(object):
                 else:  # elif lastGPIO[0] % 2 == 1:
                     lastGPIOtime = lastGPIO[2]
 
-                eventLog += "%d, %d, %s\n" % lastGPIO
+                eventLog += "%d, %d, %s, %.6f\n" % lastGPIO
 
         except KeyboardInterrupt:
             logging.debug("User interrupted the program.")
@@ -1513,7 +1526,7 @@ class PiCameraObject(object):
 
                 lastGPIO = self.GPIOqueue.get()
                 lastEvent = lastGPIO[2]
-                eventLog += "%d, %d, %s\n" % lastGPIO
+                eventLog += "%d, %d, %s, %.6f\n" % lastGPIO
 
         except KeyboardInterrupt:
             logging.debug("User interrupted the program.")
@@ -1654,6 +1667,8 @@ if __name__ == "__main__":
             camPin=int(cameraConfig["Camera_Pin"]),
             splitter_port=1,
             format=cameraConfig["Camera_Format"],
+            stampEvents=cameraConfig.get("Camera_Stamp_Events", "False").lower()
+            == "true",
         )
 
         cam1.setRecordSched(cameraConfig, "SetInitialAlarms.h")

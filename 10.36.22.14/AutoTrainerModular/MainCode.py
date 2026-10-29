@@ -29,6 +29,11 @@ TRIAL_SUMMARY_HEADER = (
     "unstructuredProb,sessionStartEpochMs,blockStartRelMs,trialStartRelMs,trialEndRelMs\n"
 )
 
+# <session>.pitime (CSV text): one row per .dat line, in order, with the Pi clocks at the
+# moment the line arrived; offline sync maps Teensy smTime -> Pi time with it
+PITIME_SUFFIX = ".pitime"  # own extension: the transfer protects the newest file per extension
+PITIME_HEADER = "pi_mono_s,pi_epoch_s,event,sm_time_ms\n"
+
 
 class safeExit:
     """
@@ -903,6 +908,7 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
         currentDate = datetime.datetime.now()
 
         totalDataRead = ""
+        lineTimes = []  # (monotonic, epoch) when each line in totalDataRead ended
 
         if analogEnabled:
             totalAnalogRead = ""
@@ -947,6 +953,7 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
             try:
                 dataToRead = ser.inWaiting()
                 dataRead = ser.read(dataToRead)
+                readTimes = (time.monotonic(), time.time())
             except KeyboardInterrupt:
                 raise Exception("Teensy Serial Port User Interrupt Error")
             except Exception:
@@ -957,6 +964,7 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                 dataRead = dataRead.decode("utf-8", "ignore")
 
             totalDataRead = "".join([totalDataRead, dataRead])
+            lineTimes.extend([readTimes] * dataRead.count("\n"))
 
             # True indicates all lines ends in \n
             completeLine = True
@@ -986,7 +994,8 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
 
             # If all lines end in \n, then write to output file or analog file
             if completeLine and len(totalDataRead) > 1:
-                for eachLine in totalDataRead.splitlines(True):
+                pitimeRows = []
+                for lineNum, eachLine in enumerate(totalDataRead.splitlines(True)):
                     words = eachLine.split(",")
 
                     # This tag indicates (I)nformation from Teensy
@@ -1074,6 +1083,15 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
 
                             f.write(eachLine)
                             dataLineCount += 1
+                            mono, epoch = (
+                                lineTimes[lineNum]
+                                if lineNum < len(lineTimes)
+                                else readTimes
+                            )
+                            pitimeRows.append(
+                                "%.6f,%.6f,%s,%s\n"
+                                % (mono, epoch, words[0], words[4].strip())
+                            )
 
                             try:
                                 new = {
@@ -1088,8 +1106,22 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                                 state.update(new)
                                 stateDirty = True
 
+                if pitimeRows:
+                    pitimeFileN = outputFileN.replace(".dat", PITIME_SUFFIX)
+                    newPitime = not os.path.exists(pitimeFileN)
+                    try:
+                        with open(pitimeFileN, "a") as ptf:
+                            if newPitime:
+                                ptf.write(PITIME_HEADER)
+                            ptf.writelines(pitimeRows)
+                    except OSError as e:
+                        writeLogFile(
+                            msgFileN, ["Error:", "Could not write %s: %s" % (pitimeFileN, e)]
+                        )
+
                 # Reset accumulated string
                 totalDataRead = ""
+                lineTimes = []
 
             if analogEnabled:
                 # Check available data in analog USB serial and read them
