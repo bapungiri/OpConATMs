@@ -1,0 +1,37 @@
+# ---- Camera Settings [Recording_Mode-> B:Buffer, C:Continuous]
+RPi_IP            = 140.247.178.75
+Camera_Type       = Slave
+Recording_Mode    = C
+WebCam_Preview    = False
+Camera_Resolution = (640, 360)
+Camera_FPS        = 40
+Camera_Rotation   = 90
+Camera_Bitrate    = 2000000
+Camera_Pin        = 26
+Camera_Format     = h264
+Stream_Port       = 9000
+
+# ---- Recording Schedule [U: User Set, T: Training Schedule]
+Record_Schedule   = T
+Record_Start      = [( 2, 30), (19, 20), (22,  0)]
+Record_Stop       = [( 3, 10), (20,  0), (22, 40)]
+Teensy_Alarm_File = SetInitialAlarms.h
+
+# ---- Transfer Schedule [U: User Set, T: Outside Training, False: Do Not Transfer]
+Transfer_Schedule = T
+Transfer_Start    = [( 8, 0)]
+Transfer_Stop     = [(16, 0)]
+
+# ---- Conversion Setting [Output_Format-> mp4, mkv, Output_Size-> C: Compressed, O: original]
+Convert_Video = True
+Output_Format = mp4
+Output_Size   = C
+
+# ---- Video Files Transfer Information [Only change Storage_Video_Dir]
+Storage_Video_Dir = /Mahmood/videoRPi/TestBox/rpiM/
+RPi_Video_Dir     = /home/pi/Desktop/Video
+Protocol          = rsync
+Transfer_Ext      = *.frames; *.events
+Log_File_Dir      = /home/pi/rsynclog.txt
+Storage_Root      = /srv/export/nwl-b2407-s2/share_root
+Storage_Host      = olveczkyfs01.oeb.harvard.edu
