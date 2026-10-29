@@ -652,7 +652,8 @@ class PiCameraObject(object):
             wallSec = self._edgeTimestampToWall(ev.timestamp_ns)
             camTime = int(wallSec * 1e6)  # microseconds (wall clock)
             piTime = wallSec + self.getTimeDiffUTC()
-            self.GPIOqueue.put((PinStatus, camTime, piTime))
+            mono = ev.timestamp_ns / 1e9  # CLOCK_MONOTONIC, same clock as .pitime
+            self.GPIOqueue.put((PinStatus, camTime, piTime, mono))
 
     def _gpio_event_loop(self):
         """Background thread that polls gpiod for edge events."""
@@ -670,7 +671,8 @@ class PiCameraObject(object):
                         wallSec = self._edgeTimestampToWall(ev.timestamp_ns)
                         camTime = int(wallSec * 1e6)
                         piTime = wallSec + self.getTimeDiffUTC()
-                        self.GPIOqueue.put((PinStatus, camTime, piTime))
+                        mono = ev.timestamp_ns / 1e9  # CLOCK_MONOTONIC
+                        self.GPIOqueue.put((PinStatus, camTime, piTime, mono))
 
     def setupGPIO(self):
         """Setup GPIO to communicate with Teensy board using gpiod (Pi 5 compatible)."""
@@ -1253,7 +1255,7 @@ class PiCameraObject(object):
 
                 # start recording
                 if recordFlag == 0 and lastGPIO[0] % 2 == 1:
-                    camStartTime, startTime = lastGPIO[1:]
+                    camStartTime, startTime = lastGPIO[1:3]
                     lastGPIOtime = lastGPIO[2]
 
                     fname = self.clipName(startTime)
@@ -1295,7 +1297,7 @@ class PiCameraObject(object):
                 else:  # elif lastGPIO[0] % 2 == 1:
                     lastGPIOtime = lastGPIO[2]
 
-                eventLog += "%d, %d, %s\n" % lastGPIO
+                eventLog += "%d, %d, %s, %.6f\n" % lastGPIO
 
         except KeyboardInterrupt:
             logging.debug("User interrupted the program.")
@@ -1478,7 +1480,7 @@ class PiCameraObject(object):
 
                 lastGPIO = self.GPIOqueue.get()
                 lastEvent = lastGPIO[2]
-                eventLog += "%d, %d, %s\n" % lastGPIO
+                eventLog += "%d, %d, %s, %.6f\n" % lastGPIO
 
         except KeyboardInterrupt:
             logging.debug("User interrupted the program.")

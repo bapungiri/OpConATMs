@@ -122,7 +122,7 @@ inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
                 unsigned int whenNosepoke = (millis() - stateMachineStartTime);
 
                 // Detect which port
-                n = !Nosepoke1DI.diRead() ? 1 : (!Nosepoke2DI.diRead() ? 2 : n);
+                n = Nosepoke1DI.isOn() ? 1 : 2; // the input that started the trial
 
                 // Reporting port number and time of nosepoke, removed WhichNosepoke()
                 ReportData(81, n, whenNosepoke);

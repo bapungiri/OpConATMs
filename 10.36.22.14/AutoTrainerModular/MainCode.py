@@ -17,7 +17,9 @@ import random  # Python random number module
 import RPi.GPIO as GPIO  # Python RPi GPIO utility
 import re  # Python regular expression module
 import json  # animal state file (stage, water)
+import select  # wait for Teensy serial data without spinning
 import signal  # Python signal module [e.g., exit signal]
+import socket  # forward Teensy lines to PiCamMain (video text)
 from PIL import Image, ImageDraw, ImageFont  # Python Image module [change background]
 
 import pickle
@@ -33,6 +35,9 @@ TRIAL_SUMMARY_HEADER = (
 # moment the line arrived; offline sync maps Teensy smTime -> Pi time with it
 PITIME_SUFFIX = ".pitime"  # own extension: the transfer protects the newest file per extension
 PITIME_HEADER = "pi_mono_s,pi_epoch_s,event,sm_time_ms\n"
+
+# Every .dat line also goes to PiCamMain on this port, for the event text on the video
+EVENT_UDP_ADDR = ("127.0.0.1", 9101)
 
 
 class safeExit:
@@ -295,6 +300,34 @@ def writeStartState(userConfig):
         % (state["stage"], state["dailyIntake"], state["weeklyIntake"], path)
     )
     return state
+
+
+def writeBoxConfig(userConfig):
+    """Write BoxConfig.h for the coming compile: the pin level each sensor type has
+    while active ('Nosepoke_Active' and 'Lick_Active' in userInfo.in, LOW or HIGH;
+    LOW and HIGH when not set)."""
+
+    levels = {}
+    for key, name, default in (
+        ("Nosepoke_Active", "NOSEPOKE_ACTIVE", "LOW"),
+        ("Lick_Active", "LICK_ACTIVE", "HIGH"),
+    ):
+        level = userConfig.get(key, default).split("#")[0].strip().upper()
+        if level not in ("LOW", "HIGH"):
+            raise ValueError("%s in userInfo.in must be LOW or HIGH, not %r" % (key, level))
+        levels[name] = level
+
+    with open("BoxConfig.h", "w") as fh:
+        fh.write(
+            "// Written by MainCode.py from userInfo.in\n"
+            "#ifndef _BoxConfig_h\n#define _BoxConfig_h\n"
+            "#define LICK_ACTIVE %s\n#define NOSEPOKE_ACTIVE %s\n"
+            "#endif\n" % (levels["LICK_ACTIVE"], levels["NOSEPOKE_ACTIVE"])
+        )
+    print(
+        "   ... Sensors active: nosepoke %s, lick %s"
+        % (levels["NOSEPOKE_ACTIVE"], levels["LICK_ACTIVE"])
+    )
 
 
 def compileUploadTeensy(userConfig):
@@ -909,6 +942,7 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
 
         totalDataRead = ""
         lineTimes = []  # (monotonic, epoch) when each line in totalDataRead ended
+        eventSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         if analogEnabled:
             totalAnalogRead = ""
@@ -952,6 +986,11 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
             # Check available data in serial and read them
             try:
                 dataToRead = ser.inWaiting()
+                if dataToRead == 0 and not analogEnabled:
+                    # Sleep until the Teensy sends something (at most 50 ms, for the
+                    # checks below) instead of spinning, which held a whole CPU core
+                    select.select([ser.fileno()], [], [], 0.05)
+                    dataToRead = ser.inWaiting()
                 dataRead = ser.read(dataToRead)
                 readTimes = (time.monotonic(), time.time())
             except KeyboardInterrupt:
@@ -1092,6 +1131,10 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                                 "%.6f,%.6f,%s,%s\n"
                                 % (mono, epoch, words[0], words[4].strip())
                             )
+                            try:
+                                eventSock.sendto(eachLine.encode(), EVENT_UDP_ADDR)
+                            except OSError:
+                                pass  # no camera listening
 
                             try:
                                 new = {
@@ -1406,6 +1449,7 @@ def main():
     # Compile and upload Teensy code, starting from the animal's saved stage
     global animalState
     animalState = writeStartState(userConfig)
+    writeBoxConfig(userConfig)
     compileUploadTeensy(userConfig)
 
     # Check analog serial status [True: Enabled, False: Disabled]

@@ -14,6 +14,7 @@ import csv  # CVS file reader
 import netifaces  # Network interface to get IP
 import argparse  # Input argument parser
 import queue as queue  # Queue data stracture
+import socket  # event lines forwarded by MainCode.py (video text)
 import socketserver as socketserver  # Socket module - webcam
 from http import server as server  # Http server
 import glob  # File pattern search
@@ -48,6 +49,25 @@ def getTimeFormat(withTime=False, dash=False):
             timeFormat = now.strftime("%Y%m%d")
 
     return timeFormat
+
+
+# MainCode.py forwards every .dat line here; see eventTextLoop()
+EVENT_UDP_ADDR = ("127.0.0.1", 9101)
+EVENT_TEXT_SECONDS = 0.3  # how long a label stays on the video
+
+
+def readEventPins(fileName="SetHardwareConfig.h"):
+    """Teensy pins of the nosepoke inputs and the camera trigger line, from the
+    firmware's hardware config: ({nosepoke pin: label}, trigger pin)."""
+
+    labels = {"Nosepoke1DI": "NOSEPOKE L", "Nosepoke2DI": "NOSEPOKE R"}
+    with open(fileName) as fh:
+        text = re.sub(r"//.*", "", fh.read())
+    pins = dict(
+        (name, int(pin))
+        for name, pin in re.findall(r'CreateHDW_D[IO]\((\w+),\s*"[^"]*",\s*(\d+)', text)
+    )
+    return dict((pins[n], label) for n, label in labels.items() if n in pins), pins.get("GPIOOutDO")
 
 
 def getUserConfig(fileName, splitterChar):
@@ -606,7 +626,7 @@ class PiCameraObject(object):
         camPin       : GPIO pin number on RPi to receive events from Teensy
         splitter_port: Splitter port number on Pi camera
         format       : Video file format (h264, mjpeg)
-        stampEvents  : burn frame number + EVENT (line high) into the frames
+        stampEvents  : write NOSEPOKE L/R and LICK on the video as they happen
     """
 
     def __init__(
@@ -645,15 +665,19 @@ class PiCameraObject(object):
 
         self.camera.led = False
 
-        # GPU text overlay, in recorded clips and the web preview; it lands
-        # 1-2 frames after the edge, so use .events/.frames for exact timing
+        # GPU text overlay, in recorded clips and the web preview; it lands a few
+        # frames after the event, so use .events/.frames for exact timing
         self.stampEvents = stampEvents
         if stampEvents:
             self.camera.annotate_text_size = 20
             self.camera.annotate_background = picamera.Color("black")
-            self.camera.annotate_frame_num = True
 
         self.setupGPIO()
+
+        if stampEvents:
+            textThread = threading.Thread(name="EventText", target=self.eventTextLoop)
+            textThread.daemon = True
+            textThread.start()
 
         self.GPIO_Old = None
 
@@ -700,9 +724,52 @@ class PiCameraObject(object):
             return
 
         self.GPIOqueue.put((PinStatus, camTime, piTime, mono))
-        if self.stampEvents:
-            self.camera.annotate_text = "EVENT" if PinStatus else ""
         return
+
+    def eventTextLoop(self):
+        """Write NOSEPOKE L/R or LICK on the video for each event in the .dat lines
+        MainCode.py forwards. A camera-line high written in the same ms as a
+        nosepoke edge belongs to that nosepoke; any other one is a lick."""
+
+        try:
+            pokeLabels, linePin = readEventPins()
+        except (OSError, re.error) as e:
+            logging.debug("Event text off, no hardware config: %s" % e)
+            return
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        for _ in range(50):  # a previous camera object may still hold the port
+            try:
+                sock.bind(EVENT_UDP_ADDR)
+                break
+            except OSError:
+                time.sleep(0.1)
+        else:
+            logging.debug("Event text off, port %d busy" % EVENT_UDP_ADDR[1])
+            return
+        sock.settimeout(0.05)
+        lastPoke, clearAt = None, None
+        try:
+            while not self.stopRequested:
+                try:
+                    words = sock.recv(256).decode().split(",")
+                    event, value, smTime = int(words[0]), int(words[1]), int(words[4])
+                except socket.timeout:
+                    event = None
+                except (ValueError, IndexError, UnicodeDecodeError):
+                    continue
+                label = None
+                if event in pokeLabels and value == 1:
+                    label, lastPoke = pokeLabels[event], smTime
+                elif event == linePin and value == 1 and smTime != lastPoke:
+                    label = "LICK"
+                if label:
+                    self.camera.annotate_text = label
+                    clearAt = time.time() + EVENT_TEXT_SECONDS
+                elif clearAt is not None and time.time() > clearAt:
+                    self.camera.annotate_text = ""
+                    clearAt = None
+        finally:
+            sock.close()
 
     def setupGPIO(self):
         """Setup GPIO to communicate with Teensy board ## BCM to BOARD"""

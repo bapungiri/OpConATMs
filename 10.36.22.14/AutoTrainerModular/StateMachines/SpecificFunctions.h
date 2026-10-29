@@ -8,7 +8,7 @@
 
 void WhichNosepoke(int unsigned nptime)
 { // checking which nosepoke and reporting
-  uint8_t recordNosepoke[4] = {!Nosepoke1DI.diRead(), !Nosepoke2DI.diRead()};
+  uint8_t recordNosepoke[4] = {Nosepoke1DI.isActive(), Nosepoke2DI.isActive()};
   int whichnosepoke[2] = {1, 2};
   for (int i = 0; i <= 1; ++i)
   {
