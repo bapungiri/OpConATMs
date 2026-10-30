@@ -12,6 +12,7 @@ DI_HDW::DI_HDW()
   pinTyp = DIGITAL;
   pinMod = INPUT;
   value = LOW;
+  activeLevel = HIGH;
 }
 
 // DI_HDW class isOn() member function
@@ -34,6 +35,13 @@ uint8_t DI_HDW::diRead()
 {
   // Read pin digital value
   return digitalRead(pinNum);
+}
+
+// DI_HDW class isActive() member function
+bool DI_HDW::isActive()
+{
+  // Return TRUE if the pin is at its active level
+  return (digitalRead(pinNum) == activeLevel);
 }
 
 // DI_HDW class detachInterruptHandler() member function

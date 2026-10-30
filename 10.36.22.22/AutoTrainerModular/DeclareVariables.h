@@ -106,7 +106,7 @@ unsigned long timeStampTeensy = now();
 IntervalTimer toDoTimer[1];
 
 // Initialize hardware properties
-void CreateHDW_DI(DI_HDW &, String, uint8_t, OnInterruptFunc, int);
+void CreateHDW_DI(DI_HDW &, String, uint8_t, OnInterruptFunc, int, uint8_t activeLevel = HIGH);
 void CreateHDW_DO(DO_HDW &, String, uint8_t, uint8_t);
 void CreateHDW_AI(AI_HDW &, String, uint8_t, double);
 void CreateHDW_AO(AO_HDW &, String, uint8_t);

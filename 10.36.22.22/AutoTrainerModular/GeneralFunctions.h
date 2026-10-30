@@ -8,13 +8,14 @@
 #include "HardwareLibrary/HardwareClass.h" // ensure trialSummaryQueue & structs are visible
 
 // -----------------------------------------   CreateHDW_DI
-void CreateHDW_DI(DI_HDW &pin, String pinNAM, uint8_t pinN, OnInterruptFunc Func, int interruptMode)
+void CreateHDW_DI(DI_HDW &pin, String pinNAM, uint8_t pinN, OnInterruptFunc Func, int interruptMode, uint8_t activeLevel)
 {
   // Set basic pin properties
   pin.pinName = pinNAM;
   pin.pinNum = pinN;
   pin.pinTyp = DIGITAL;
   pin.pinMod = INPUT;
+  pin.activeLevel = activeLevel;
 
   // Set the pin mode
   pinMode(pin.pinNum, pin.pinMod);

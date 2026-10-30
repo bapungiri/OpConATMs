@@ -159,6 +159,8 @@ public:
   void clear();            // Clear pin value
 
   uint8_t diRead(); // Digital read: read the value of digital pin
+  uint8_t activeLevel; // Pin level while active (HIGH or LOW), e.g. nose in the port
+  bool isActive();     // Return True if the pin is at its active level now
 
   void detachInterruptHandler();                // Detach interrupt handler of pin
   void attachInterruptHandler(OnInterruptFunc); // Attach interrupt handler of pin

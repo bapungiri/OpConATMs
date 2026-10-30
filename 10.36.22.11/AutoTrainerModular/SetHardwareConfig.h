@@ -5,6 +5,8 @@
 #ifndef _SetHardwareConfig_h
 #define _SetHardwareConfig_h
 
+#include "BoxConfig.h" // active level of each sensor type
+
 // Declare hardware pins
 DI_HDW Nosepoke1DI, Nosepoke2DI, LickDI;
 DO_HDW  HouseRedDO, HouseGreenDO, HouseBlueDO, CamLeftDO, CamRightDO, WaterDO, IRLightDO, GPIOOutDO;
@@ -17,10 +19,10 @@ void Interrupt_Nosepoke1DI(), Interrupt_Nosepoke2DI(), Interrupt_LickDI();
 void SetHardwareConfig(){
 
   // -------------------------------------- DI
-  CreateHDW_DI(Nosepoke1DI, "Nosepoke1DI", 21, Interrupt_Nosepoke1DI, CHANGE);
-  CreateHDW_DI(Nosepoke2DI, "Nosepoke2DI", 20, Interrupt_Nosepoke2DI, CHANGE);
+  CreateHDW_DI(Nosepoke1DI, "Nosepoke1DI", 21, Interrupt_Nosepoke1DI, CHANGE, NOSEPOKE_ACTIVE);
+  CreateHDW_DI(Nosepoke2DI, "Nosepoke2DI", 20, Interrupt_Nosepoke2DI, CHANGE, NOSEPOKE_ACTIVE);
 
-  CreateHDW_DI(LickDI,  "LickDI",   25, Interrupt_LickDI,  CHANGE);
+  CreateHDW_DI(LickDI,  "LickDI",   25, Interrupt_LickDI,  CHANGE, LICK_ACTIVE);
 
   // -------------------------------------- DO
   CreateHDW_DO(HouseRedDO,   "HouseRedDO",    3, invertY);
@@ -49,18 +51,22 @@ void SetHardwareConfig(){
   SetSoundConfig();
 };
 
+// Inputs read 1 while active (nose in port, tongue on spout) on every box; BoxConfig.h
+// sets each sensor's active level. The camera trigger line (GPIOOutDO) goes high when
+// a nosepoke or lick starts and low when it ends.
+
 // -------------------------------------- Interrupt_Nosepoke1DI()
 void Interrupt_Nosepoke1DI(){
   volatile unsigned long when = millis()-stateMachineStartTime;
-  Nosepoke1DI.value = !Nosepoke1DI.diRead();
+  Nosepoke1DI.value = Nosepoke1DI.isActive();
   ReportData(Nosepoke1DI.pinNum, Nosepoke1DI.value, when);
-  if (!Nosepoke1DI.isOn()){
+  if (Nosepoke1DI.isOn()){
     Nosepoke1DI.eventTimes[2] = Nosepoke1DI.eventTimes[1];
     Nosepoke1DI.eventTimes[1] = Nosepoke1DI.eventTimes[0];
     Nosepoke1DI.eventTimes[0] = when;
     GPIOOutDO.on();   // R-Pi GPIO High
   }
-  else if( Nosepoke1DI.isOn() ){
+  else{
     GPIOOutDO.off();  // R-Pi GPIO Low
   }
 };
@@ -68,15 +74,15 @@ void Interrupt_Nosepoke1DI(){
 // -------------------------------------- Interrupt_Nosepoke2DI()
 void Interrupt_Nosepoke2DI(){
   volatile unsigned long when = millis()-stateMachineStartTime;
-  Nosepoke2DI.value = !Nosepoke2DI.diRead();
+  Nosepoke2DI.value = Nosepoke2DI.isActive();
   ReportData(Nosepoke2DI.pinNum, Nosepoke2DI.value, when);
-  if (!Nosepoke2DI.isOn()){
+  if (Nosepoke2DI.isOn()){
     Nosepoke2DI.eventTimes[2] = Nosepoke2DI.eventTimes[1];
     Nosepoke2DI.eventTimes[1] = Nosepoke2DI.eventTimes[0];
     Nosepoke2DI.eventTimes[0] = when;
     GPIOOutDO.on();   // R-Pi GPIO High
   }
-  else if( Nosepoke2DI.isOn() ){
+  else{
     GPIOOutDO.off();  // R-Pi GPIO Low
   }
 };
@@ -84,7 +90,7 @@ void Interrupt_Nosepoke2DI(){
 // -------------------------------------- Interrupt_LickDI()
 void Interrupt_LickDI(){
   volatile unsigned long when = millis()-stateMachineStartTime;
-  LickDI.value = LickDI.diRead();
+  LickDI.value = LickDI.isActive();
   //ReportData(LickDI.pinNum, LickDI.value, when); //stopped reporting through this channel because too many events not created by animal 5-1-2023
   if (LickDI.isOn()){
     LickDI.eventTimes[2] = LickDI.eventTimes[1];
@@ -92,7 +98,7 @@ void Interrupt_LickDI(){
     LickDI.eventTimes[0] = when;
     GPIOOutDO.on();	//R-Pi GPIO High
   }
-  else if (! LickDI.isOn()){
+  else{
     GPIOOutDO.off();	//R-Pi GPIO Low
   }
 };
