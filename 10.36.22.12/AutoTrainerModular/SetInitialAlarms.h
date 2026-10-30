@@ -27,7 +27,8 @@ void SetInitialAlarms()
   SetDailyAlarms(5, 30, 0, Disable, -1, DoNothing, DoNothing, DoNothing);
 
   SetWeeklyAlarms(dowMonday, 4, 0, 0, Special, -1, HouseLightsOnToneWater, HouseLightsOff, WeeklyWater);
-  SetWeeklyAlarms(dowMonday, 5, 0, 0, Disable, -1, DoNothing, DoNothing, DoNothing);
+  // Ends before 5:00: an alarm in the same second as DailyWater would override it
+  SetWeeklyAlarms(dowMonday, 4, 55, 0, Disable, -1, DoNothing, DoNothing, DoNothing);
 }
 
 #endif

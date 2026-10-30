@@ -282,13 +282,8 @@ def writeStartState(userConfig):
         saved = datetime.datetime.strptime(state["saved"], STATE_TIME_FORMAT)
     except (TypeError, ValueError):
         saved = None
-    # WeeklyWater resets the daily total as well as the weekly one
-    for key, machines in (
-        ("dailyIntake", ("DailyWater", "WeeklyWater")),
-        ("weeklyIntake", ("WeeklyWater",)),
-    ):
-        resets = [r for r in (lastWaterReset(m, now) for m in machines) if r is not None]
-        reset = max(resets) if resets else None
+    for key, machine in (("dailyIntake", "DailyWater"), ("weeklyIntake", "WeeklyWater")):
+        reset = lastWaterReset(machine, now)
         if saved is None or reset is None or saved < reset:
             state[key] = 0
 

@@ -17,10 +17,6 @@ void WeeklyWaterMachine(){
     if(stateStop){
       ReportData(63, weeklyQuota, (millis()-stateMachineStartTime));
       weeklyIntake=0; // Reset weekly water
-      // Start a new water day too: the DailyWater alarm during this run is
-      // skipped, so without this the next DailyWater would count Sunday's water
-      // and this weekly water as one day and give no top-up
-      dailyIntake=0;
       EndCurrentStateMachine();
       RunStartANDEndStateMachine(&endStateMachine);
       EndCurrentTrainingProtocol();
