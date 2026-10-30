@@ -14,6 +14,8 @@ import csv  # CVS file reader
 import netifaces  # Network interface to get IP
 import argparse  # Input argument parser
 import queue as queue  # Queue data stracture
+import collections  # event list for the stream page
+import json  # events.json for the stream page
 import socket  # event lines forwarded by MainCode.py (video text)
 import socketserver as socketserver  # Socket module - webcam
 from http import server as server  # Http server
@@ -54,6 +56,97 @@ def getTimeFormat(withTime=False, dash=False):
 # MainCode.py forwards every .dat line here; see eventTextLoop()
 EVENT_UDP_ADDR = ("127.0.0.1", 9101)
 EVENT_TEXT_SECONDS = 0.3  # how long a label stays on the video
+EVENT_TEXT_SIZE = 16  # default for Camera_Text_Size in camInfoM.in (picamera: 6-160)
+
+
+def readStateMachineNames(fileName="SetStateMachineTP.h"):
+    """State machine names in the order of their numbers in the .dat (the
+    FOREACH_STATEMACHINE list in the firmware)."""
+
+    with open(fileName) as fh:
+        text = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", fh.read(), flags=re.S))
+    macro = re.search(r"#define\s+FOREACH_STATEMACHINE\(SM\)((?:[^\n]*\\\n)*[^\n]*)", text)
+    return re.findall(r"SM\((\w+)\)", macro.group(1)) if macro else []
+
+
+class EventFeed(object):
+    """Last events and the current session's counts, for the stream page's panel
+    (served as events.json). A session is one run of the state machine that
+    reports trials; it starts over when that machine changes or restarts."""
+
+    KEEP = 10
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        try:
+            self.smNames = readStateMachineNames()
+        except (OSError, re.error):
+            self.smNames = []
+        self.events = collections.deque(maxlen=self.KEEP)
+        self.seq = 0
+        self.sessionSm, self.sessionSince, self.lastSmTime = None, None, None
+        self.trial, self.licksInTrial = None, 0
+        self.counts = dict(trials=0, rewarded=0, pokesL=0, pokesR=0, pulses=0)
+
+    def _add(self, label, kind, note=""):
+        self.seq += 1
+        self.events.appendleft(dict(
+            time=datetime.datetime.now().strftime("%H:%M:%S.%f")[:12],
+            label=label, kind=kind, note=note))
+
+    def _newSession(self, sm):
+        self.sessionSm, self.sessionSince = sm, datetime.datetime.now().strftime("%H:%M")
+        self.counts = dict.fromkeys(self.counts, 0)
+        self.trial, self.licksInTrial = None, 0
+
+    def add(self, event, value, sm, smTime, label):
+        """One .dat line; label is the video text it got (NOSEPOKE L/R, LICK) or None."""
+
+        with self.lock:
+            if sm == self.sessionSm and event != 83:  # 83's time field is a probability
+                if self.lastSmTime is not None and smTime < self.lastSmTime - 1000:
+                    self._newSession(sm)  # same machine started again
+                self.lastSmTime = smTime
+            if event == 81:
+                if sm != self.sessionSm:
+                    self._newSession(sm)
+                    self.lastSmTime = smTime
+                self.counts["trials"] += 1
+                self.trial, self.licksInTrial = self.counts["trials"], 0
+                self._add("TRIAL %d" % self.trial, "trial", "port " + {1: "L", 2: "R"}.get(value, str(value)))
+            elif label == "LICK" and sm == self.sessionSm and self.trial:
+                self.licksInTrial += 1
+                self._add(label, "lick", "lick %d of trial %d" % (self.licksInTrial, self.trial))
+            elif label == "LICK":
+                self._add(label, "lick", self.smName(sm))
+            elif label:
+                self.counts["pokesL" if label.endswith("L") else "pokesR"] += 1
+                self._add(label, "poke")
+            elif event == 51 and sm == self.sessionSm:
+                self.counts["rewarded"] += 1
+                self.counts["pulses"] += value
+                self._add("REWARD %d pulse%s" % (value, "" if value == 1 else "s"), "reward")
+            elif event == 51:
+                self._add("WATER %d pulse%s" % (value, "" if value == 1 else "s"), "reward",
+                          self.smName(sm))
+            elif event == -51:
+                self._add("no reward", "none", "trial %d" % self.trial if self.trial else "")
+
+    def smName(self, sm):
+        return self.smNames[sm] if 0 <= sm < len(self.smNames) else "state machine %d" % sm
+
+    def snapshot(self):
+        with self.lock:
+            return dict(
+                seq=self.seq,
+                events=list(self.events),
+                counts=dict(self.counts),
+                session=(dict(name=self.smName(self.sessionSm), since=self.sessionSince)
+                         if self.sessionSm is not None else None),
+            )
+
+
+eventFeed = EventFeed()
 
 
 def readEventPins(fileName="SetHardwareConfig.h"):
@@ -305,7 +398,10 @@ def generateHTML(resolution, ip):
       </tr>
     </table>
     <p>Camera Status: <b>%s</b> | Saving clips (recording window): <b>%s</b></p>
-    <p><img src="stream.mjpg" width="%d" height="%d" /></p>
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+    <img src="stream.mjpg" width="%d" height="%d" />
+    %s
+    </div>
     </body>
     </html>
     """ % (
@@ -321,8 +417,60 @@ def generateHTML(resolution, ip):
         schedule_state,
         resolution[1],
         resolution[0],
+        EVENT_PANEL,
     )
     return PAGE
+
+
+# Live events beside the stream; polls events.json (EventFeed) a few times a second
+EVENT_PANEL = """
+<section style="width:372px;box-sizing:border-box;border:1px solid #d0d4da;border-radius:6px;
+  padding:14px 16px;font:13px system-ui,-apple-system,'Segoe UI',sans-serif;color:#1b1b1b">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <b style="font-size:15px">Live events</b>
+    <span id="ev-session" style="font-size:12px;color:#4a5361"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;margin:12px 0;
+    background:#fff4e5;border-radius:4px;min-height:30px">
+    <span id="ev-latest" style="font-size:22px;font-weight:700;color:#8a4b00"></span>
+    <span id="ev-latest-note" style="color:#4a5361"></span>
+  </div>
+  <div id="ev-counts" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center"></div>
+  <div id="ev-list" style="margin-top:12px;font:12.5px ui-monospace,Consolas,monospace"></div>
+</section>
+<script>
+(function () {
+  var colors = {poke: '#0b6b3a', lick: '#8a4b00', reward: '#1f5fbf', none: '#4a5361', trial: '#1b1b1b'};
+  var seen = -1;
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]; }); }
+  function tile(n, label) {
+    return '<div style="padding:6px 0;background:#f3f5f8;border-radius:4px"><div style="font-size:18px;font-weight:600">' +
+      n + '</div><div style="font-size:11px;color:#4a5361">' + label + '</div></div>';
+  }
+  function show(d) {
+    var c = d.counts;
+    document.getElementById('ev-session').textContent = d.session ? d.session.name + ' · since ' + d.session.since : 'no trials yet';
+    document.getElementById('ev-counts').innerHTML = tile(c.trials, 'trials') + tile(c.rewarded, 'rewarded') +
+      tile(c.pokesL + ' / ' + c.pokesR, 'pokes L / R') + tile(c.pulses, 'water pulses');
+    var e = d.events[0];
+    document.getElementById('ev-latest').textContent = e ? e.label : '';
+    document.getElementById('ev-latest').style.color = e ? colors[e.kind] : '';
+    document.getElementById('ev-latest-note').textContent = e ? e.time + (e.note ? ' · ' + e.note : '') : 'waiting for events';
+    document.getElementById('ev-list').innerHTML = d.events.map(function (e) {
+      return '<div style="display:flex;gap:12px;padding:4px 0;border-bottom:1px solid #eceef1">' +
+        '<span style="color:#4a5361">' + esc(e.time) + '</span><span style="font-weight:600;color:' + colors[e.kind] + '">' +
+        esc(e.label) + '</span><span style="color:#4a5361">' + esc(e.note) + '</span></div>';
+    }).join('');
+  }
+  function poll() {
+    fetch('events.json', {cache: 'no-store'}).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.seq !== seen) { seen = d.seq; show(d); }
+    }).catch(function () {}).then(function () { setTimeout(poll, 250); });
+  }
+  poll();
+})();
+</script>
+"""
 
 
 class StreamingOutput(object):
@@ -361,6 +509,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
 
     PATH_SUFFIXES = (
         "/status",
+        "/events.json",
         "/stream.mjpg",
         "/index.html",
     )
@@ -424,7 +573,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             PAGE = self.get_page()
             content = PAGE.encode("utf-8")
             self.send_response(200)
-            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", len(content))
             self.end_headers()
             self.wfile.write(content)
@@ -438,6 +587,16 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             payload = str(status).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", len(payload))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
+        if suffix == "/events.json":
+            payload = json.dumps(eventFeed.snapshot()).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-cache")
             self.send_header("Content-Length", len(payload))
             self.end_headers()
             self.wfile.write(payload)
@@ -627,6 +786,7 @@ class PiCameraObject(object):
         splitter_port: Splitter port number on Pi camera
         format       : Video file format (h264, mjpeg)
         stampEvents  : write NOSEPOKE L/R and LICK on the video as they happen
+        textSize     : size of that text (picamera annotate_text_size, 6-160)
     """
 
     def __init__(
@@ -640,6 +800,7 @@ class PiCameraObject(object):
         splitter_port=1,
         format="h264",
         stampEvents=False,
+        textSize=EVENT_TEXT_SIZE,
     ):
         """Returns a PiCamera object whose name is *name*."""
 
@@ -669,15 +830,15 @@ class PiCameraObject(object):
         # frames after the event, so use .events/.frames for exact timing
         self.stampEvents = stampEvents
         if stampEvents:
-            self.camera.annotate_text_size = 20
+            self.camera.annotate_text_size = textSize
             self.camera.annotate_background = picamera.Color("black")
 
         self.setupGPIO()
 
-        if stampEvents:
-            textThread = threading.Thread(name="EventText", target=self.eventTextLoop)
-            textThread.daemon = True
-            textThread.start()
+        # Always on: it also fills the stream page's event panel
+        textThread = threading.Thread(name="EventText", target=self.eventTextLoop)
+        textThread.daemon = True
+        textThread.start()
 
         self.GPIO_Old = None
 
@@ -727,9 +888,10 @@ class PiCameraObject(object):
         return
 
     def eventTextLoop(self):
-        """Write NOSEPOKE L/R or LICK on the video for each event in the .dat lines
-        MainCode.py forwards. A camera-line high written in the same ms as a
-        nosepoke edge belongs to that nosepoke; any other one is a lick."""
+        """Label each .dat line MainCode.py forwards: NOSEPOKE L/R or LICK on the
+        video (when stampEvents), and every event to the stream page's panel. A
+        camera-line high written in the same ms as a nosepoke edge belongs to
+        that nosepoke; any other one is a lick."""
 
         try:
             pokeLabels, linePin = readEventPins()
@@ -753,6 +915,7 @@ class PiCameraObject(object):
                 try:
                     words = sock.recv(256).decode().split(",")
                     event, value, smTime = int(words[0]), int(words[1]), int(words[4])
+                    sm = int(words[2])
                 except socket.timeout:
                     event = None
                 except (ValueError, IndexError, UnicodeDecodeError):
@@ -762,6 +925,13 @@ class PiCameraObject(object):
                     label, lastPoke = pokeLabels[event], smTime
                 elif event == linePin and value == 1 and smTime != lastPoke:
                     label = "LICK"
+                if event is not None:
+                    try:
+                        eventFeed.add(event, value, sm, smTime, label)
+                    except Exception as e:  # the panel must never stop the camera
+                        logging.debug("Event panel: %r" % e)
+                if not self.stampEvents:
+                    continue
                 if label:
                     self.camera.annotate_text = label
                     clearAt = time.time() + EVENT_TEXT_SECONDS
@@ -1736,6 +1906,7 @@ if __name__ == "__main__":
             format=cameraConfig["Camera_Format"],
             stampEvents=cameraConfig.get("Camera_Stamp_Events", "False").lower()
             == "true",
+            textSize=int(cameraConfig.get("Camera_Text_Size", EVENT_TEXT_SIZE)),
         )
 
         cam1.setRecordSched(cameraConfig, "SetInitialAlarms.h")

@@ -10,6 +10,7 @@ Camera_Bitrate    = 2000000
 Camera_Pin        = 26
 Camera_Format     = h264
 Camera_Stamp_Events = True
+Camera_Text_Size  = 16
 Stream_Port       = 9000
 
 # ---- Recording Schedule [U: User Set, T: Training Schedule]
