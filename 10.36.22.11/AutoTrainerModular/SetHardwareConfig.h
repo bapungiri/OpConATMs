@@ -19,8 +19,8 @@ void Interrupt_Nosepoke1DI(), Interrupt_Nosepoke2DI(), Interrupt_LickDI();
 void SetHardwareConfig(){
 
   // -------------------------------------- DI
-  CreateHDW_DI(Nosepoke1DI, "Nosepoke1DI", 21, Interrupt_Nosepoke1DI, CHANGE, NOSEPOKE_ACTIVE);
-  CreateHDW_DI(Nosepoke2DI, "Nosepoke2DI", 20, Interrupt_Nosepoke2DI, CHANGE, NOSEPOKE_ACTIVE);
+  CreateHDW_DI(Nosepoke1DI, "Nosepoke1DI", 20, Interrupt_Nosepoke1DI, CHANGE, NOSEPOKE_ACTIVE);
+  CreateHDW_DI(Nosepoke2DI, "Nosepoke2DI", 21, Interrupt_Nosepoke2DI, CHANGE, NOSEPOKE_ACTIVE);
 
   CreateHDW_DI(LickDI,  "LickDI",   25, Interrupt_LickDI,  CHANGE, LICK_ACTIVE);
 
