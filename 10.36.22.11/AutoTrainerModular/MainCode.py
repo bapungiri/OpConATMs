@@ -21,6 +21,7 @@ import json  # animal state file (stage, water)
 import select  # wait for Teensy serial data without spinning
 import signal  # Python signal module [e.g., exit signal]
 import socket  # forward Teensy lines to PiCamMain (video text)
+import sys  # restart MainCode when the Teensy is lost
 from PIL import Image, ImageDraw, ImageFont  # Python Image module [change background]
 
 import pickle
@@ -38,6 +39,14 @@ PITIME_HEADER = "pi_mono_s,pi_epoch_s,event,sm_time_ms\n"
 
 # Every .dat line also goes to PiCamMain on this port, for the event text on the video
 EVENT_UDP_ADDR = ("127.0.0.1", 9101)
+
+# A Teensy that resets (power dip, bumped cable) comes back as a new device
+# (ttyACM0 -> ttyACM1) and the old port reads nothing, forever. MainCode then
+# restarts itself, which reflashes the Teensy from the saved state like a deploy.
+# The Teensy sends event 97 every hour, so Serial_TimeOut silence means it hung.
+PORT_CHECK_SEC = 5
+MAX_TEENSY_RESTARTS = 5  # per deploy; a Teensy that is really gone stops here
+teensyLost = False
 
 
 class safeExit:
@@ -923,6 +932,8 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
     Function to read the available serial port.
     """
 
+    global teensyLost
+
     # Final check for serial access
     if not checkSerialConnection(ser):
         return
@@ -1010,6 +1021,7 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
         # Serial time out check
         lastTimeSerialCheck = int(time.time())
         serialTimeOutCheck = int(userConfig["Serial_TimeOut"])
+        lastPortCheck = time.time()
 
         # Teensy time sync
         lastTimeSync = int(time.time())
@@ -1035,8 +1047,28 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
             except KeyboardInterrupt:
                 raise Exception("Teensy Serial Port User Interrupt Error")
             except Exception:
-                sendEmail("The serial port is not open.", userConfig, msgFileN)
+                teensyLost = True
+                sendEmail(
+                    "The serial port is not open; restarting MainCode.", userConfig, msgFileN
+                )
                 raise Exception("Teensy Serial Port Not Available Error")
+
+            if time.time() - lastPortCheck > PORT_CHECK_SEC:
+                lastPortCheck = time.time()
+                # gone, or recreated under the same name (a new device node)
+                try:
+                    portSame = os.stat(ser.port).st_ino == os.fstat(ser.fileno()).st_ino
+                except OSError:
+                    portSame = False
+                if not portSame:
+                    teensyLost = True
+                    writeLogFile(msgFileN, ["Error:", "Teensy disconnected (%s gone)" % ser.port])
+                    sendEmail(
+                        "Teensy disconnected (%s gone); restarting MainCode." % ser.port,
+                        userConfig,
+                        msgFileN,
+                    )
+                    raise Exception("Teensy Disconnected Error")
 
             if isinstance(dataRead, bytes):
                 dataRead = dataRead.decode("utf-8", "ignore")
@@ -1063,10 +1095,14 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
                     writeLogFile(msgFileN, msgList)
 
                     # Send an email if serial is not available
-                    sendEmail("Teensy serial port is idle.", userConfig, msgFileN)
+                    sendEmail(
+                        "Teensy serial port is idle; restarting MainCode.",
+                        userConfig,
+                        msgFileN,
+                    )
 
-                    lastTimeSerialCheck = int(time.time())
-                    # raise Exception('Teensy Serial Port IDLE Error')
+                    teensyLost = True
+                    raise Exception("Teensy Serial Port IDLE Error")
             else:
                 lastTimeSerialCheck = int(time.time())
 
@@ -1333,6 +1369,13 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
             pass
 
     finally:
+        # Keep the last minute of water and any stage change for the next start
+        if locals().get("stateDirty"):
+            try:
+                saveState(statePathN, state)
+            except OSError:
+                pass
+
         # Session-end flush / integrity marker (with checksums & counts)
         try:
 
@@ -1521,10 +1564,23 @@ def main():
     removeCrontab()
 
     # Close serial and analog serial and clean GPIO
-    ser.close()
+    try:
+        ser.close()
+    except Exception:  # the port may be gone (Teensy lost)
+        pass
     if analogEnabled:
         anSer.close()
     cleanupGPIO()
+
+    # Teensy lost: start over, which recompiles and reflashes it from the saved state
+    if teensyLost:
+        restarts = int(os.environ.get("ATM_TEENSY_RESTARTS", "0")) + 1
+        if restarts <= MAX_TEENSY_RESTARTS:
+            os.environ["ATM_TEENSY_RESTARTS"] = str(restarts)
+            print("   ... Teensy lost: restarting MainCode (%d/%d)" % (restarts, MAX_TEENSY_RESTARTS))
+            time.sleep(10)  # let a re-enumerating Teensy settle
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        print("   ... Teensy lost %d times: not restarting again." % MAX_TEENSY_RESTARTS)
 
     # Trigger transfer/backup pipeline after every run
 
