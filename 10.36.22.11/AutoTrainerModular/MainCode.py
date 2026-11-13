@@ -46,6 +46,7 @@ EVENT_UDP_ADDR = ("127.0.0.1", 9101)
 # The Teensy sends event 97 every hour, so Serial_TimeOut silence means it hung.
 PORT_CHECK_SEC = 5
 MAX_TEENSY_RESTARTS = 5  # per deploy; a Teensy that is really gone stops here
+SMTP_TIMEOUT_SEC = 20  # an unresponsive mail relay must not block the task loop
 teensyLost = False
 
 
@@ -640,9 +641,9 @@ def sendEmail(errorMessage, userConfig, msgFileN, emailSubject=None):
             smtpAddress = userConfig["WD_SMTP"].lower()
             smtpPort = int(userConfig["WD_SMTP_Port"])
             if userConfig["WD_SSL"].lower() == "true":
-                s = smtplib.SMTP_SSL(smtpAddress, smtpPort)
+                s = smtplib.SMTP_SSL(smtpAddress, smtpPort, timeout=SMTP_TIMEOUT_SEC)
             else:
-                s = smtplib.SMTP(smtpAddress, smtpPort)
+                s = smtplib.SMTP(smtpAddress, smtpPort, timeout=SMTP_TIMEOUT_SEC)
 
             s.ehlo()
             s.login(emailUser, emailPass)
