@@ -1090,7 +1090,9 @@ def printSerialOutput(ser, anSer, userConfig, analogEnabled, expStartTime):
             f = open(outputFileN, "a")
             tsf = open(trialSummaryFileN, "a")  # open trial summary file for this cycle
 
-            if len(totalDataRead) == 0:
+            # new bytes, not the buffer: a partial line left in totalDataRead must not
+            # keep resetting the timer (BGM7 .15, 16 Nov: Teensy hung, never restarted)
+            if len(dataRead) == 0:
                 if (int(time.time()) - lastTimeSerialCheck) > serialTimeOutCheck:
                     msgList = ["Error:", "Teensy serial port is idle"]
                     writeLogFile(msgFileN, msgList)
