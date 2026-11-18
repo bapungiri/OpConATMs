@@ -2,8 +2,7 @@
 RPi_IP              = 10.36.22.15
 Experiment_Name     = Nosepoke2port
 Box_Name            = F05
-Subject_Name        = BGM7
-Seed_Stage          = BGM7:6   # one-time: start stage while this animal has no state.json
+Subject_Name        = BGF13
 # ---- Sensor levels while active (nose in port / tongue on spout): LOW or HIGH
 Nosepoke_Active     = LOW
 Lick_Active         = HIGH
@@ -33,7 +32,7 @@ Zip_On_Rotate  	    = False
 Transfer_Enabled    = True
 Raw_Data_Mode	    = True
 Daily_Time          = 13:30
-Look_In_Paths       = /home/pi/ExpData/BGM7
+Look_In_Paths       = /home/pi/ExpData/BGF13
 File_Exts           = dat, log, mp4, events, frames, h264, csv, pitime
 Specific_Dests      = True    
 Delete_Moved        = True
@@ -41,7 +40,7 @@ Keep_Latest         = True     # do not delete latest files corresponding to eac
 Skip_Latest         = True    # do not move latest files corresponding to each ext
 Nas_Ip              = 10.36.22.120
 Nas_Creds           = /home/pi/.smbcredentials
-Destination_In_Fs   = bapun.giri/Bandit2ArmData/BGdataset/Paradigm_8020/lesion_mPFC_post/
+Destination_In_Fs   = bapun.giri/Bandit2ArmData/BGdataset/Paradigm_9505/intact/
 Mountpoint          = /home/pi/NASMount/
 Remount             = True    # unmount and mount FS to Mountpoint to ensure Destination_In_Fs is the mounted path
 Logs_Dir            = /home/pi/ATM_transfer_logs

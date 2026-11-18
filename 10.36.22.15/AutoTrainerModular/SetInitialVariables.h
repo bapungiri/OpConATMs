@@ -41,7 +41,7 @@ void SetInitialVariables()
   weeklyIntake = START_WEEKLY_INTAKE;
   dailyQuota = 2000; // restricted water=10ml per day
   weeklyQuota = 10500;
-  rewardTime = 15; // 0.005 ml per pulse
+  rewardTime = 20; // 0.005 ml per pulse
 
   // Report The Initial State Machine
   Serial.print("I,The starting state machine is: ");

@@ -76,7 +76,7 @@ static int checkSMStateStopGeneric(const NosepokeImpureStruct &st)
 inline void NosepokeImpureMachineCore(NosepokeImpureStruct &st)
 {
     // ---------for unstructured probability--------
-    int unstrProb = 80;
+    int unstrProb = 5;
     // -----------------
 
     st.unstructuredProb = unstrProb; // store for logging
