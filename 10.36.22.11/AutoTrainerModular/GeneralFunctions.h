@@ -339,6 +339,11 @@ void HouseKeeping(unsigned long delayT = 0)
   if ((now() - timeStampTeensy) >= 3600)
   {
     ReportData(97, 97, (millis() - stateMachineStartTime));
+    // Raw sensor levels, so a sensor stuck at one level (which logs no edges)
+    // still shows up: value = pin*10 + level, e.g. 98,201 = pin 20 HIGH
+    ReportData(98, Nosepoke1DI.pinNum * 10 + digitalRead(Nosepoke1DI.pinNum), (millis() - stateMachineStartTime));
+    ReportData(98, Nosepoke2DI.pinNum * 10 + digitalRead(Nosepoke2DI.pinNum), (millis() - stateMachineStartTime));
+    ReportData(98, LickDI.pinNum * 10 + digitalRead(LickDI.pinNum), (millis() - stateMachineStartTime));
     timeStampTeensy = now();
   }
 
