@@ -6,7 +6,7 @@
 #define _SetStateMachineTP_h
 
 // Define number of state machines, training protocols, and max number of stages
-#define numStates 16          // Number of state machines (removed separate Struc/Unstruc wrappers)
+#define numStates 17          // Number of state machines (removed separate Struc/Unstruc wrappers; + FreeWater)
 #define numTrainingProtocol 1 // Number of training protocol
 #define maxNumStage 7         // Maximum number of stages in training protocols
 
@@ -27,7 +27,8 @@
   SM(NosepokeProb40)             \
   SM(NosepokeImpure)             \
   SM(ReadSessionParams)          \
-  SM(DoNothing)
+  SM(DoNothing)                  \
+  SM(FreeWater)
 
 // Define enum list of state machines (integer value = 0,1,2,...,numStates-1)
 #define GENERATE_ENUM(x) x,

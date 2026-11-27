@@ -24,6 +24,7 @@
 #include "StateMachines/NosepokeImpureMachine.h"
 #include "StateMachines/ReadSessionParamsMachine.h"
 #include "StateMachines/DoNothingMachine.h"
+#include "StateMachines/FreeWaterMachine.h"
 //<--[0]
 
 #endif
