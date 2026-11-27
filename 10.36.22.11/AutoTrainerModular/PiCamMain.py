@@ -155,6 +155,337 @@ class EventFeed(object):
 eventFeed = EventFeed()
 
 
+SENSOR_KEYS = ("L", "R", "Lick")
+SENSOR_DAY_MIN = 1440  # the panel's long strip: last 24 h in 1-min bins
+SENSOR_RAW_MS = 600000  # the panel's raw trace: last 10 min of edges
+SENSOR_RAW_CAP = 3000  # most edges sent per row (a chattering lick line makes ~50k)
+SENSOR_FAST_MS = 20  # rising edges closer than this count as chatter
+SENSOR_CACHE_DIR = os.path.expanduser("~/.cache/opcon_sensors")  # outside ExpData: never transferred
+SENSOR_CACHE_EVERY_S = 300  # how often the panel's state is saved
+SENSOR_CACHE_MAX_AGE_MS = (SENSOR_DAY_MIN + 60) * 60000  # an older cache is ignored
+
+
+def localNowMs():
+    """Local wall clock in ms, in the Teensy's convention (local time stored as UTC)."""
+
+    return int((time.time() - time.timezone) * 1000)
+
+
+def readSensorPins(fileName="SetHardwareConfig.h"):
+    """{hardware name: Teensy pin} for every CreateHDW_DI/DO in the firmware config."""
+
+    with open(fileName) as fh:
+        text = re.sub(r"//.*", "", fh.read())
+    return dict(
+        (name, int(pin))
+        for name, pin in re.findall(r'CreateHDW_D[IO]\((\w+),\s*"[^"]*",\s*(\d+)', text)
+    )
+
+
+class SensorTrace(object):
+    """Nosepoke and lick lines for the stream page's sensor panel (served as
+    sensors.json): per-minute bins over the last 24 h (fraction of the minute
+    the sensor read in/contact, rising edges, edges < SENSOR_FAST_MS apart),
+    the hourly level checks (code 98), each sensor's current state and since
+    when, and the raw edges of the 10 min before the last sensor edge.
+    Built by following the subject's .dat files. The state and the read
+    position are saved every few minutes to a small cache outside ExpData, so
+    a restart resumes where it was even after the day's .dat has moved to the
+    NAS; without a cache it rebuilds from the .dat files still on the box."""
+
+    SAVED = ("state", "since", "lastEdge", "rawInit", "changed", "approx", "lastEdgeMs",
+             "lastPokeSm", "lastMs", "firstMs", "gaps")
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.codes = {}  # .dat event code (= Teensy pin) -> key
+        self.levelPins = {}  # pin in code-98 rows -> (key, level meaning in/contact)
+        self.bins = {}  # epoch minute -> {key: [inFraction, edges, fastEdges]}
+        self.state = dict((k, 0) for k in SENSOR_KEYS)
+        self.since = dict((k, None) for k in SENSOR_KEYS)  # ms the state was last settled
+        self.lastEdge = dict((k, None) for k in SENSOR_KEYS)  # smTime of last rising edge
+        self.levels = collections.deque()  # (ms, key, in)
+        self.raw = collections.deque()  # (ms, key, state after the edge)
+        self.rawInit = dict((k, 0) for k in SENSOR_KEYS)
+        self.changed = dict((k, None) for k in SENSOR_KEYS)  # ms the current state began
+        self.approx = dict((k, True) for k in SENSOR_KEYS)  # True: began at or before 'changed'
+        self.lastEdgeMs = None  # ms of the last sensor edge (anchors the 10 min trace)
+        self.lastPokeSm = None
+        self.lastMs = None
+        self.firstMs = None  # oldest data read (start of the oldest .dat still on the box)
+        self.gaps = []  # [fromMs, toMs]: data lost while the camera was down and the .dat moved
+        self.gapFrom = None
+        self.ready = False
+
+    def configure(self, pins):
+        """Nosepoke edges are logged under their pin; licks show up as the camera
+        line (GPIOOutDO), which also pulses with each nosepoke edge."""
+
+        self.codes = {pins["Nosepoke1DI"]: "L", pins["Nosepoke2DI"]: "R", pins["GPIOOutDO"]: "Lick"}
+        self.levelPins = {pins["Nosepoke1DI"]: ("L", 0), pins["Nosepoke2DI"]: ("R", 0)}  # LOW = nose in
+        if "LickDI" in pins:
+            self.levelPins[pins["LickDI"]] = ("Lick", 1)  # HIGH = contact
+
+    def _bin(self, minute):
+        b = self.bins.get(minute)
+        if b is None:
+            b = self.bins[minute] = dict((k, [0.0, 0, 0]) for k in SENSOR_KEYS)
+        return b
+
+    def _settle(self, key, ms):
+        """Credit the time since the last change to the minutes it covered."""
+
+        t0 = self.since[key]
+        if self.state[key] and t0 is not None and ms > t0:
+            t0 = max(t0, ms - (SENSOR_DAY_MIN + 60) * 60000)
+            while t0 < ms:
+                m = t0 // 60000
+                t = min(ms, (m + 1) * 60000)
+                self._bin(m)[key][0] += (t - t0) / 60000.0
+                t0 = t
+        self.since[key] = ms
+
+    def add(self, code, value, smTime, epoch):
+        ms = epoch * 1000 + smTime % 1000
+        if self.lastMs is None or ms > self.lastMs:
+            self.lastMs = ms
+        if self.firstMs is None or ms < self.firstMs:
+            self.firstMs = ms
+        if self.gapFrom is not None:
+            if ms - self.gapFrom > 60000:
+                self.gaps.append([self.gapFrom, ms])
+            self.gapFrom = None
+        if code == 98:  # hourly level check: value = pin*10 + level
+            pin, level = divmod(value, 10)
+            if pin in self.levelPins:
+                key, inLevel = self.levelPins[pin]
+                self._settle(key, ms)
+                self._setState(key, 1 if level == inLevel else 0, ms)
+                self.levels.append((ms, key, self.state[key]))
+                self.raw.append((ms, key, self.state[key]))  # so the trace starts at the right level
+            return
+        key = self.codes.get(code)
+        if key is None:
+            return
+        if key != "Lick":
+            self.lastPokeSm = smTime
+        elif value == 1 and smTime == self.lastPokeSm:
+            return  # camera-line pulse of a nosepoke edge, not a lick
+        self._settle(key, ms)
+        if value == 1:
+            b = self._bin(ms // 60000)[key]
+            b[1] += 1
+            last = self.lastEdge[key]
+            if last is not None and 0 <= smTime - last < SENSOR_FAST_MS:
+                b[2] += 1
+            self.lastEdge[key] = smTime
+        self._setState(key, 1 if value == 1 else 0, ms, edge=True)
+        self.raw.append((ms, key, self.state[key]))
+        if self.lastEdgeMs is None or ms > self.lastEdgeMs:
+            self.lastEdgeMs = ms
+
+    def _setState(self, key, new, ms, edge=False):
+        """Track when the current state began. A state first seen in an hourly
+        check began at or before it (approx); an edge dates it exactly."""
+
+        if self.changed[key] is None or new != self.state[key]:
+            self.changed[key] = ms
+            self.approx[key] = not edge
+        self.state[key] = new
+
+    def _prune(self):
+        if self.lastMs is None:
+            return
+        oldest = self.lastMs // 60000 - SENSOR_DAY_MIN - 60
+        for m in [m for m in self.bins if m < oldest]:
+            del self.bins[m]
+        while self.levels and self.levels[0][0] < oldest * 60000:
+            self.levels.popleft()
+        self.gaps = [g for g in self.gaps if g[1] >= oldest * 60000]
+        anchor = self.lastEdgeMs if self.lastEdgeMs is not None else self.lastMs
+        while self.raw and self.raw[0][0] < anchor - SENSOR_RAW_MS:
+            ms, key, s = self.raw.popleft()
+            self.rawInit[key] = s
+
+    def _line(self, line):
+        p = line.split(b",")
+        if len(p) < 6:
+            return
+        try:
+            code, value, smTime, epoch = int(p[0]), int(p[1]), int(p[4]), int(p[5])
+        except ValueError:
+            return
+        self.add(code, value, smTime, epoch)
+
+    def _save(self, path, current, pos, part):
+        """Write the state and read position atomically (temp file + rename)."""
+
+        with self.lock:
+            d = dict((name, getattr(self, name)) for name in self.SAVED)
+            d.update(
+                version=1,
+                file=os.path.basename(current),
+                pos=pos,
+                part=part.decode("latin-1"),
+                bins=[[m, [b[k] for k in SENSOR_KEYS]] for m, b in self.bins.items()],
+                levels=list(self.levels),
+                raw=list(self.raw),
+            )
+            text = json.dumps(d, separators=(",", ":"))
+        tmp = path + ".tmp"
+        with open(tmp, "w") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+
+    def _load(self, path):
+        """Restore a saved state; returns (file name, pos, partial line) or None."""
+
+        try:
+            with open(path) as fh:
+                d = json.load(fh)
+        except (IOError, OSError, ValueError):
+            return None
+        if d.get("version") != 1 or d.get("lastMs") is None:
+            return None
+        if localNowMs() - d["lastMs"] > SENSOR_CACHE_MAX_AGE_MS:
+            return None  # too old to help: rebuild from the .dat files
+        for name in self.SAVED:
+            setattr(self, name, d[name])
+        self.lastEdge = dict(d["lastEdge"])
+        self.bins = dict((m, dict(zip(SENSOR_KEYS, vals))) for m, vals in d["bins"])
+        self.levels = collections.deque(tuple(x) for x in d["levels"])
+        self.raw = collections.deque(tuple(x) for x in d["raw"])
+        return d["file"], d["pos"], d["part"].encode("latin-1")
+
+    def follow(self, dataDir, subject):
+        """Resume from the cache if there is one; otherwise read the subject's
+        .dat files from the day before onward. Then keep following the newest;
+        MainCode starts a new one every day."""
+
+        pattern = os.path.join(dataDir, subject + "-*.dat")
+        current, pos, part = None, 0, b""
+        cachePath = None
+        try:
+            if not os.path.isdir(SENSOR_CACHE_DIR):
+                os.makedirs(SENSOR_CACHE_DIR)
+            cachePath = os.path.join(SENSOR_CACHE_DIR, re.sub(r"[^\w.-]", "_", subject) + ".json")
+        except OSError as e:
+            logging.debug("Sensor cache off: %r" % e)
+        saved = self._load(cachePath) if cachePath else None
+        resumeAfter = None
+        if saved:
+            name, savedPos, savedPart = saved
+            path = os.path.join(dataDir, name)
+            if os.path.exists(path) and os.path.getsize(path) >= savedPos:
+                current, pos, part = path, savedPos, savedPart
+            else:  # moved to the NAS while the camera was down: go on with newer files
+                resumeAfter = path
+                self.gapFrom = self.lastMs
+        lastSave, savedAt = time.time(), (current, pos)
+        while True:
+            files = sorted(glob.glob(pattern))
+            if current is None:
+                if resumeAfter is not None:
+                    files = [f for f in files if f > resumeAfter]
+                if not files:
+                    self.ready = True
+                    time.sleep(5)
+                    continue
+                if resumeAfter is not None:
+                    current = files[0]
+                else:
+                    current = files[-2] if len(files) > 1 else files[-1]
+            try:
+                with open(current, "rb") as fh:
+                    fh.seek(pos)
+                    chunk = fh.read(4 * 1024 * 1024)
+                    pos = fh.tell()
+            except (IOError, OSError):  # moved to the NAS by the transfer
+                chunk = b""
+            if chunk:
+                lines = (part + chunk).split(b"\n")
+                part = lines.pop()
+                with self.lock:
+                    for line in lines:
+                        self._line(line)
+                    self._prune()
+                continue
+            newer = [f for f in files if f > current]
+            if newer:
+                current, pos, part = newer[0], 0, b""
+                continue
+            self.ready = True
+            if cachePath and time.time() - lastSave >= SENSOR_CACHE_EVERY_S and (current, pos) != savedAt:
+                lastSave, savedAt = time.time(), (current, pos)  # nothing new read: no write
+                try:
+                    self._save(cachePath, current, pos, part)
+                except (IOError, OSError) as e:
+                    logging.debug("Sensor cache not saved: %r" % e)
+            time.sleep(2)
+
+    def snapshot(self):
+        nowMs = localNowMs()
+        end = nowMs // 60000 + 1
+        start = end - SENSOR_DAY_MIN
+        with self.lock:
+            dataEnd = self.lastMs
+            rows = {}
+            for k in SENSOR_KEYS:
+                occ, n, fast = [], [], []
+                openFrom = self.since[k] if self.state[k] else None
+                for m in range(start, end):
+                    b = self.bins.get(m)
+                    o, e, f = b[k] if b else (0.0, 0, 0)
+                    if openFrom is not None and dataEnd is not None:  # still in: up to the last data
+                        lo, hi = max(openFrom, m * 60000), min(dataEnd, (m + 1) * 60000)
+                        if hi > lo:
+                            o += (hi - lo) / 60000.0
+                    occ.append(round(min(o, 1.0), 2))
+                    n.append(e)
+                    fast.append(f)
+                rows[k] = dict(occ=occ, n=n, fast=fast)
+            levels = [
+                [round(ms / 60000.0 - start, 1), k, s] for ms, k, s in self.levels if ms >= start * 60000
+            ]
+            cur = {}
+            for k in SENSOR_KEYS:
+                ch = self.changed[k]
+                cur[k] = dict(
+                    on=self.state[k],
+                    forMin=None if ch is None or dataEnd is None else int((dataEnd - ch) // 60000),
+                    approx=self.approx[k],
+                )
+            raw, w1 = None, self.lastEdgeMs
+            if w1 is not None:
+                w0 = w1 - SENSOR_RAW_MS
+                ev, init, cut = {}, dict(self.rawInit), False
+                for k in SENSOR_KEYS:
+                    lst = [(ms, s) for ms, kk, s in self.raw if kk == k and w0 <= ms <= w1]
+                    if len(lst) > SENSOR_RAW_CAP:
+                        init[k], lst, cut = lst[-SENSOR_RAW_CAP - 1][1], lst[-SENSOR_RAW_CAP:], True
+                    ev[k] = [[ms - w0, s] for ms, s in lst]
+                raw = dict(start=w0, init=init, ev=ev, capped=cut, ageMin=int((nowMs - w1) // 60000))
+            return dict(
+                ready=self.ready,
+                start=start * 60,
+                endMin=None if dataEnd is None else min(SENSOR_DAY_MIN, dataEnd // 60000 - start + 1),
+                beginMin=0 if self.firstMs is None else max(0, self.firstMs // 60000 - start),
+                gaps=[
+                    [max(0, a // 60000 - start), min(SENSOR_DAY_MIN, b // 60000 - start + 1)]
+                    for a, b in self.gaps
+                    if b // 60000 >= start
+                ],
+                lagMin=None if dataEnd is None else int((nowMs - dataEnd) // 60000),
+                rows=rows,
+                levels=levels,
+                cur=cur,
+                raw=raw,
+            )
+
+
+sensorTrace = SensorTrace()
+
+
 def readEventPins(fileName="SetHardwareConfig.h"):
     """Teensy pins of the nosepoke inputs and the camera trigger line, from the
     firmware's hardware config: ({nosepoke pin: label}, trigger pin)."""
@@ -442,6 +773,7 @@ def generateHTML(resolution, ip):
     <img src="stream.mjpg" width="%d" height="%d" />
     %s
     </div>
+    %s
     </body>
     </html>
     """ % (
@@ -458,6 +790,7 @@ def generateHTML(resolution, ip):
         resolution[1],
         resolution[0],
         EVENT_PANEL,
+        SENSOR_PANEL,
     )
     return PAGE
 
@@ -513,6 +846,155 @@ EVENT_PANEL = """
 """
 
 
+# Sensor health below the stream and events panel; polls sensors.json (SensorTrace)
+SENSOR_PANEL = """
+<section style="width:100%;max-width:1032px;box-sizing:border-box;margin-top:20px;border:1px solid #d0d4da;
+  border-radius:6px;padding:14px 16px;font:13px system-ui,-apple-system,'Segoe UI',sans-serif;color:#1b1b1b">
+  <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px">
+    <b style="font-size:15px">Sensors</b>
+    <span id="sn-chips" style="display:flex;flex-wrap:wrap;gap:6px"></span>
+  </div>
+  <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#4a5361;margin:12px 0 4px">
+    Last 24 h <span id="sn-day-when" style="text-transform:none;letter-spacing:0"></span></div>
+  <canvas id="sn-day" style="width:100%;display:block"></canvas>
+  <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#4a5361;margin:12px 0 4px">
+    10 min before the last event <span id="sn-raw-when" style="text-transform:none;letter-spacing:0"></span></div>
+  <canvas id="sn-raw" style="width:100%;display:block"></canvas>
+  <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px;font-size:11.5px;color:#4a5361">
+    <span><i style="display:inline-block;width:12px;height:9px;background:#1f5fbf;border-radius:2px"></i> events per minute</span>
+    <span><i style="display:inline-block;width:12px;height:9px;background:#b42318;border-radius:2px"></i> reads in for the whole minute</span>
+    <span><i style="display:inline-block;width:12px;height:9px;background:#c77700;border-radius:2px"></i> chatter (most events &lt;20 ms apart)</span>
+    <span><i style="display:inline-block;width:12px;height:9px;background:repeating-linear-gradient(45deg,#c9ced6 0 3px,transparent 3px 6px)"></i> no data: not received from the Teensy yet, or older than the oldest file on the box</span>
+    <span>&#9679; / &#9675; hourly level check: in / out</span>
+  </div>
+</section>
+<script>
+(function () {
+  var KEYS = ['L', 'R', 'Lick'], LABEL = {L: 'L poke', R: 'R poke', Lick: 'Lick'};
+  var C = {trace: '#1f5fbf', ok: '#0b6b3a', okbg: '#e6f4ec', warn: '#8a4b00', warnfill: '#c77700', warnbg: '#fff4e5',
+           bad: '#b42318', badbg: '#fde8e6', muted: '#4a5361', line: '#eceef1', hatch: '#c9ced6', fg: '#1b1b1b'};
+  var LW = 58, RH = 24, GAP = 8, AX = 18, last = null;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function hm(sec) { var d = new Date(sec * 1000); return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()); }
+  function hms(sec) { var d = new Date(sec * 1000); return hm(sec) + ':' + pad(d.getUTCSeconds()); }
+  function sum(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s; }
+  function dur(m) { return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
+  function ago(m) { return m < 1 ? 'just now' : dur(m) + ' ago'; }
+  function flags(d) {
+    // Stuck = in right now for 60 min or more; earlier stuck stretches stay visible in the 24 h strip only.
+    var f = {};
+    KEYS.forEach(function (k) {
+      var r = d.rows[k], c = d.cur[k], n = sum(r.n), fast = sum(r.fast);
+      var other = k === 'L' ? sum(d.rows.R.n) : k === 'R' ? sum(d.rows.L.n) : 0;
+      var inFor = c.on && c.forMin !== null ? (c.approx ? '\\u2265 ' : '') + dur(c.forMin) : '';
+      var now = c.on ? (k === 'Lick' ? 'contact ' : 'IN ') + inFor : (k === 'Lick' ? 'no contact' : 'out');
+      if (c.on && c.forMin !== null && c.forMin >= 60) f[k] = {cls: 'bad', text: LABEL[k] + ' stuck IN \\u00b7 ' + inFor};
+      else if (n > 1000 && fast / n > 0.3) f[k] = {cls: 'warn', text: LABEL[k] + ' chatter \\u00b7 ' + Math.round(100 * fast / n) + '% of events <20 ms apart'};
+      else if (k !== 'Lick' && n === 0 && other >= 100) f[k] = {cls: 'warn', text: LABEL[k] + ' silent \\u00b7 ' + now};
+      else f[k] = {cls: 'ok', text: LABEL[k] + ' \\u00b7 ' + now};
+    });
+    return f;
+  }
+  function setup(cv, h) {
+    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+    var ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w];
+  }
+  function labels(ctx, fl) {
+    ctx.font = '600 11px ui-monospace,Consolas,monospace'; ctx.textBaseline = 'middle';
+    KEYS.forEach(function (k, i) { ctx.fillStyle = C[fl[k].cls]; ctx.fillText(LABEL[k], 0, i * (RH + GAP) + RH / 2); });
+  }
+  function drawDay(d, fl) {
+    var H = KEYS.length * (RH + GAP) + AX, s = setup(document.getElementById('sn-day'), H), ctx = s[0], w = s[1];
+    var x = function (m) { return LW + (w - LW - 4) * m / 1440; }, cw = Math.max(1, (w - LW - 4) / 1440);
+    var end = d.endMin === null ? 0 : d.endMin;
+    labels(ctx, fl);
+    KEYS.forEach(function (k, i) {
+      var y0 = i * (RH + GAP), r = d.rows[k], scale = k === 'Lick' ? 300 : 30;
+      ctx.fillStyle = C.line; ctx.fillRect(LW, y0 + RH, w - LW - 4, 1);
+      for (var m = 0; m < end; m++) {
+        var n = r.n[m], f = r.fast[m];
+        if (r.occ[m] >= 0.95) { ctx.fillStyle = C.bad; ctx.fillRect(x(m), y0, cw + 0.5, RH); continue; }
+        if (!n) continue;
+        var h = Math.max(2, RH * Math.min(1, Math.sqrt(n / scale)));
+        ctx.fillStyle = (n >= 20 && f / n > 0.5) ? C.warnfill : C.trace;
+        ctx.fillRect(x(m), y0 + RH - h, cw + 0.5, h);
+      }
+      var hatch = function (a, b) {  // minutes with no data
+        if (b <= a) return;
+        ctx.save(); ctx.beginPath(); ctx.rect(x(a), y0, x(b) - x(a), RH); ctx.clip();
+        ctx.strokeStyle = C.hatch; ctx.lineWidth = 1.5;
+        for (var sx = x(a) - RH; sx < x(b); sx += 6) { ctx.beginPath(); ctx.moveTo(sx, y0 + RH); ctx.lineTo(sx + RH, y0); ctx.stroke(); }
+        ctx.restore();
+      };
+      hatch(0, Math.min(d.beginMin || 0, end));
+      hatch(end, 1440);
+      (d.gaps || []).forEach(function (g) { hatch(g[0], g[1]); });
+      d.levels.forEach(function (l) {
+        if (l[1] !== k) return;
+        ctx.beginPath(); ctx.arc(x(l[0]), y0 + RH + 4, 2.4, 0, 7);
+        if (l[2]) { ctx.fillStyle = C.fg; ctx.fill(); } else { ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.stroke(); }
+      });
+    });
+    ctx.fillStyle = C.muted; ctx.font = '10.5px ui-monospace,Consolas,monospace';
+    var y = KEYS.length * (RH + GAP) + AX / 2 + 2, first = (180 - (d.start / 60) % 180) % 180;
+    for (var m = first; m <= 1440; m += 180) {
+      ctx.textAlign = m < 20 ? 'left' : m > 1420 ? 'right' : 'center';
+      ctx.fillText(hm(d.start + m * 60), x(m), y);
+    }
+    ctx.textAlign = 'left';
+    document.getElementById('sn-day-when').textContent = '\\u00b7 ' + hm(d.start) + ' \\u2192 ' + hm(d.start + 1440 * 60);
+  }
+  function drawRaw(d, fl) {
+    var H = KEYS.length * (RH + GAP) + AX, s = setup(document.getElementById('sn-raw'), H), ctx = s[0], w = s[1];
+    var x = function (ms) { return LW + (w - LW - 4) * ms / 600000; };
+    labels(ctx, fl);
+    if (!d.raw) { document.getElementById('sn-raw-when').textContent = '\\u00b7 no sensor events since ' + hm(d.start + (d.beginMin || 0) * 60); return; }
+    var stale = d.raw.ageMin > 60;  // greyed out: history, not what the sensors do now
+    KEYS.forEach(function (k, i) {
+      var y0 = i * (RH + GAP), hi = y0 + 3, lo = y0 + RH - 1, ev = d.raw.ev[k], st = d.raw.init[k];
+      ctx.strokeStyle = stale ? C.hatch : fl[k].cls === 'ok' ? C.trace : fl[k].cls === 'warn' ? C.warnfill : C.bad; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(x(0), st ? hi : lo);
+      for (var j = 0; j < ev.length; j++) { ctx.lineTo(x(ev[j][0]), st ? hi : lo); st = ev[j][1]; ctx.lineTo(x(ev[j][0]), st ? hi : lo); }
+      ctx.lineTo(x(600000), st ? hi : lo); ctx.stroke();
+    });
+    ctx.fillStyle = C.muted; ctx.font = '10.5px ui-monospace,Consolas,monospace';
+    var y = KEYS.length * (RH + GAP) + AX / 2 + 2;
+    [0, 2, 4, 6, 8, 10].forEach(function (m) {
+      ctx.textAlign = m === 0 ? 'left' : m === 10 ? 'right' : 'center';
+      ctx.fillText(m === 10 ? 'last event' : '-' + (10 - m) + ' min', x(m * 60000), y);
+    });
+    ctx.textAlign = 'left';
+    document.getElementById('sn-raw-when').textContent = '\\u00b7 ends ' + hms((d.raw.start + 600000) / 1000) +
+      ' (' + ago(d.raw.ageMin) + ')' + (stale ? ' \\u00b7 old, greyed out' : '') +
+      (d.raw.capped ? ' \\u00b7 last ' + 3000 + ' edges per row shown' : '');
+  }
+  function chip(cls, text) {
+    return '<span style="font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;color:' +
+      C[cls] + ';background:' + C[cls + 'bg'] + '">' + text + '</span>';
+  }
+  function show(d) {
+    var el = document.getElementById('sn-chips');
+    if (!d.ready && d.endMin === null) { el.innerHTML = chip('warn', 'reading data\\u2026'); return; }
+    var fl = flags(d), html = KEYS.map(function (k) { return chip(fl[k].cls, fl[k].text); }).join('');
+    if (d.lagMin !== null && d.lagMin > 120) html += chip('warn', 'data ' + Math.floor(d.lagMin / 60) + ' h ' + (d.lagMin % 60) + ' min behind');
+    if (!d.ready) html += chip('warn', 'still reading data\\u2026');
+    el.innerHTML = html;
+    drawDay(d, fl); drawRaw(d, fl);
+  }
+  function poll() {
+    fetch('sensors.json', {cache: 'no-store'}).then(function (r) { return r.json(); }).then(function (d) {
+      last = d; show(d);
+    }).catch(function () {}).then(function () { setTimeout(poll, 5000); });
+  }
+  window.addEventListener('resize', function () { if (last) show(last); });
+  poll();
+})();
+</script>
+"""
+
+
+
 class StreamingOutput(io.BufferedIOBase):
     """Streaming web output object compatible with picamera2."""
 
@@ -550,6 +1032,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
     PATH_SUFFIXES = (
         "/status",
         "/events.json",
+        "/sensors.json",
         "/stream.mjpg",
         "/index.html",
     )
@@ -634,6 +1117,16 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
 
         if suffix == "/events.json":
             payload = json.dumps(eventFeed.snapshot()).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Content-Length", len(payload))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
+        if suffix == "/sensors.json":
+            payload = json.dumps(sensorTrace.snapshot(), separators=(",", ":")).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Cache-Control", "no-cache")
@@ -1769,6 +2262,19 @@ if __name__ == "__main__":
     subject_output_dir = resolve_subject_output_dir(userConfig)
     video_dir = os.path.join(subject_output_dir, "Video")
     cameraConfig["RPi_Video_Dir"] = video_dir
+
+    # Sensor panel on the stream page: follows the subject's .dat files
+    try:
+        sensorTrace.configure(readSensorPins())
+        sensorThread = threading.Thread(
+            name="SensorTrace",
+            target=sensorTrace.follow,
+            args=(subject_output_dir, str(userConfig.get("Subject_Name", "Subject")).strip()),
+        )
+        sensorThread.daemon = True
+        sensorThread.start()
+    except Exception as e:  # the panel must never stop the camera
+        logging.debug("Sensor panel off: %r" % e)
 
     # Start streaming server (available even when camera is off)
     if cameraConfig["WebCam_Preview"].lower() == "true":
